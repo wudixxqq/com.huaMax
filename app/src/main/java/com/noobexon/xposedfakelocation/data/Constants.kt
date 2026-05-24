@@ -18,6 +18,8 @@ const val KEY_ALTITUDE  = "altitude"
 
 const val KEY_USE_RANDOMIZE  = "use_randomize"
 const val KEY_RANDOMIZE_RADIUS = "randomize_radius"
+const val KEY_USE_GPS_NOISE = "use_gps_noise"
+const val KEY_GPS_NOISE_LEVEL = "gps_noise_level"
 
 const val KEY_USE_VERTICAL_ACCURACY = "use_vertical_accuracy"
 const val KEY_VERTICAL_ACCURACY = "vertical_accuracy"
@@ -36,6 +38,8 @@ const val KEY_SPEED_ACCURACY = "speed_accuracy"
 
 const val KEY_FAVORITES = "favorites"
 const val KEY_TARGET_APPS = "target_apps"
+const val KEY_APP_LOCATION_PROFILES = "app_location_profiles"
+const val KEY_LOCATION_TEMPLATES = "location_templates"
 
 const val KEY_HIDE_FAKE_LOCATION_TOAST = "hide_fake_location_toast"
 
@@ -52,6 +56,8 @@ const val DEFAULT_ALTITUDE = 0.0
 
 const val DEFAULT_USE_RANDOMIZE = false
 const val DEFAULT_RANDOMIZE_RADIUS = 0.0
+const val DEFAULT_USE_GPS_NOISE = false
+const val DEFAULT_GPS_NOISE_LEVEL = "NORMAL"
 
 const val DEFAULT_USE_VERTICAL_ACCURACY = false
 const val DEFAULT_VERTICAL_ACCURACY = 0.0f

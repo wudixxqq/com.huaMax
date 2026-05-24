@@ -5,6 +5,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.noobexon.xposedfakelocation.data.*
+import com.noobexon.xposedfakelocation.data.model.GpsNoiseLevel
 import com.noobexon.xposedfakelocation.data.repository.PreferencesRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -145,6 +146,25 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     )
     val randomizeRadius: StateFlow<Double> = _randomizeRadiusPreference.state
 
+    private val _useGpsNoisePreference = BooleanPreference(
+        DEFAULT_USE_GPS_NOISE,
+        preferencesRepository.getUseGpsNoiseFlow(),
+        preferencesRepository::saveUseGpsNoise,
+        viewModelScope
+    )
+    val useGpsNoise: StateFlow<Boolean> = _useGpsNoisePreference.state
+
+    private val _gpsNoiseLevel = MutableStateFlow(GpsNoiseLevel.NORMAL)
+    val gpsNoiseLevel: StateFlow<GpsNoiseLevel> = _gpsNoiseLevel.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            preferencesRepository.getGpsNoiseLevelFlow().collect { value ->
+                _gpsNoiseLevel.value = parseGpsNoiseLevel(value)
+            }
+        }
+    }
+
     // Preferences for Vertical Accuracy
     private val _useVerticalAccuracyPreference = BooleanPreference(
         DEFAULT_USE_VERTICAL_ACCURACY,
@@ -264,6 +284,13 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setAltitude(value: Double) = _altitudePreference.setValue(value)
     fun setUseRandomize(value: Boolean) = _useRandomizePreference.setValue(value)
     fun setRandomizeRadius(value: Double) = _randomizeRadiusPreference.setValue(value)
+    fun setUseGpsNoise(value: Boolean) = _useGpsNoisePreference.setValue(value)
+    fun setGpsNoiseLevel(value: GpsNoiseLevel) {
+        _gpsNoiseLevel.value = value
+        viewModelScope.launch {
+            preferencesRepository.saveGpsNoiseLevel(value.name)
+        }
+    }
     fun setUseVerticalAccuracy(value: Boolean) = _useVerticalAccuracyPreference.setValue(value)
     fun setVerticalAccuracy(value: Float) = _verticalAccuracyPreference.setValue(value)
     fun setUseMeanSeaLevel(value: Boolean) = _useMeanSeaLevelPreference.setValue(value)
@@ -277,4 +304,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setHideFakeLocationToast(value: Boolean) = _hideFakeLocationToastPreference.setValue(value)
     fun setUseInAppTargetApps(value: Boolean) = _useInAppTargetAppsPreference.setValue(value)
     fun setEnableBroadcastControl(value: Boolean) = _enableBroadcastControlPreference.setValue(value)
+
+    private fun parseGpsNoiseLevel(value: String): GpsNoiseLevel {
+        return runCatching { GpsNoiseLevel.valueOf(value) }.getOrDefault(GpsNoiseLevel.NORMAL)
+    }
 }

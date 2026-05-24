@@ -94,6 +94,16 @@ fun DrawerContent(
                 },
                 isSelected = navController.currentDestination?.route == Screen.TargetApps.route
             )
+
+            DrawerItem(
+                icon = LineAwesomeIcons.MapMarkerAltSolid,
+                label = "Templates",
+                onClick = {
+                    navController.navigate(Screen.Templates.route)
+                    onCloseDrawer()
+                },
+                isSelected = navController.currentDestination?.route == Screen.Templates.route
+            )
             
             DrawerItem(
                 icon = Icons.Default.Settings,

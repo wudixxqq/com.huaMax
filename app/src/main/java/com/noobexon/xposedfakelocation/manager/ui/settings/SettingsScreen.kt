@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import com.noobexon.xposedfakelocation.data.model.GpsNoiseLevel
 import com.noobexon.xposedfakelocation.manager.control.ControlReceiver
 
 // Dimension constants
@@ -46,7 +47,7 @@ private object Dimensions {
 private object SettingDefinitions {
     // Define setting categories
     val CATEGORIES = mapOf(
-        "Location" to listOf("Randomize Nearby Location", "Custom Horizontal Accuracy", "Custom Vertical Accuracy"),
+        "Location" to listOf("Randomize Nearby Location", "GPS Noise", "Custom Horizontal Accuracy", "Custom Vertical Accuracy"),
         "Altitude" to listOf("Custom Altitude", "Custom MSL", "Custom MSL Accuracy"),
         "Movement" to listOf("Custom Speed", "Custom Speed Accuracy")
     )
@@ -317,7 +318,15 @@ fun SettingsScreen(
                         Column(modifier = Modifier.padding(Dimensions.SPACING_SMALL)) {
                             settingsInCategory.forEach { settingTitle ->
                                 val setting = allSettings.find { it.title == settingTitle }
-                                setting?.let {
+                                if (settingTitle == "GPS Noise") {
+                                    GpsNoiseSetting(
+                                        useGpsNoise = settingsViewModel.useGpsNoise.collectAsState().value,
+                                        gpsNoiseLevel = settingsViewModel.gpsNoiseLevel.collectAsState().value,
+                                        onUseGpsNoiseChange = settingsViewModel::setUseGpsNoise,
+                                        onGpsNoiseLevelChange = settingsViewModel::setGpsNoiseLevel
+                                    )
+                                } else {
+                                    setting?.let {
                                     when (setting) {
                                         is DoubleSettingData -> {
                                             DoubleSettingComposable(setting)
@@ -326,13 +335,14 @@ fun SettingsScreen(
                                             FloatSettingComposable(setting)
                                         }
                                     }
+                                    }
+                                }
                                     if (settingTitle != settingsInCategory.last()) {
                                         HorizontalDivider(
                                             modifier = Modifier.padding(vertical = Dimensions.SPACING_SMALL),
                                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                                         )
                                     }
-                                }
                             }
                         }
                     }
@@ -342,6 +352,39 @@ fun SettingsScreen(
                 
                 // Add space at the bottom of the list
                 Spacer(modifier = Modifier.height(Dimensions.SPACING_LARGE))
+            }
+        }
+    }
+}
+
+@Composable
+private fun GpsNoiseSetting(
+    useGpsNoise: Boolean,
+    gpsNoiseLevel: GpsNoiseLevel,
+    onUseGpsNoiseChange: (Boolean) -> Unit,
+    onGpsNoiseLevelChange: (GpsNoiseLevel) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        BooleanSettingItem(
+            title = "GPS Noise",
+            description = "Adds stationary GPS noise around the selected location",
+            checked = useGpsNoise,
+            onCheckedChange = onUseGpsNoiseChange
+        )
+        if (useGpsNoise) {
+            GpsNoiseLevel.entries.forEach { level ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Dimensions.SPACING_SMALL),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = gpsNoiseLevel == level,
+                        onClick = { onGpsNoiseLevelChange(level) }
+                    )
+                    Text(level.name.lowercase().replaceFirstChar { it.uppercase() })
+                }
             }
         }
     }

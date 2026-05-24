@@ -5,10 +5,13 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.noobexon.xposedfakelocation.data.DEFAULT_MAP_ZOOM
 import com.noobexon.xposedfakelocation.data.model.FavoriteLocation
+import com.noobexon.xposedfakelocation.data.model.GpsNoiseLevel
+import com.noobexon.xposedfakelocation.data.model.LocationTemplate
 import com.noobexon.xposedfakelocation.data.repository.PreferencesRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import org.osmdroid.util.GeoPoint
+import java.util.UUID
 
 /**
  * Sealed classes to represent different dialog states
@@ -57,8 +60,13 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
         val mapZoom: Double? = null,
         val goToPointDialogState: DialogState = DialogState.Hidden,
         val addToFavoritesDialogState: DialogState = DialogState.Hidden,
+        val addToTemplateDialogState: DialogState = DialogState.Hidden,
+        val updateTemplateLocationDialogState: DialogState = DialogState.Hidden,
         val goToPointState: Pair<InputFieldState, InputFieldState> = InputFieldState() to InputFieldState(),
-        val addToFavoritesState: FavoritesInputState = FavoritesInputState()
+        val addToFavoritesState: FavoritesInputState = FavoritesInputState(),
+        val addToTemplateName: InputFieldState = InputFieldState(),
+        val addToTemplateDraft: LocationTemplate? = null,
+        val templates: List<LocationTemplate> = emptyList()
     ) {
         val isFabClickable: Boolean
             get() = lastClickedLocation != null
@@ -92,6 +100,12 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
                 _uiState.update { it.copy(lastClickedLocation = geoPoint) }
             }
         }
+
+        viewModelScope.launch {
+            preferencesRepository.getLocationTemplatesFlow().collectLatest { templates ->
+                _uiState.update { it.copy(templates = templates) }
+            }
+        }
     }
 
     fun togglePlaying() {
@@ -123,6 +137,29 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
     fun addFavoriteLocation(favoriteLocation: FavoriteLocation) {
         viewModelScope.launch {
             preferencesRepository.addFavorite(favoriteLocation)
+        }
+    }
+
+    fun addTemplateFromMarker(name: String, latitude: Double, longitude: Double) {
+        viewModelScope.launch {
+            preferencesRepository.saveLocationTemplate(createTemplateFromCurrentSettings(name, latitude, longitude))
+        }
+    }
+
+    fun addTemplate(template: LocationTemplate) {
+        viewModelScope.launch {
+            preferencesRepository.saveLocationTemplate(template)
+        }
+    }
+
+    fun updateTemplateLocation(template: LocationTemplate, latitude: Double, longitude: Double) {
+        viewModelScope.launch {
+            preferencesRepository.saveLocationTemplate(
+                template.copy(
+                    latitude = latitude,
+                    longitude = longitude
+                )
+            )
         }
     }
 
@@ -200,6 +237,34 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
         clearAddToFavoritesInputs()
     }
 
+    fun showAddToTemplateDialog() {
+        val marker = _uiState.value.lastClickedLocation ?: return
+        _uiState.update {
+            it.copy(
+                addToTemplateDialogState = DialogState.Visible,
+                addToTemplateDraft = createTemplateFromCurrentSettings("", marker.latitude, marker.longitude)
+            )
+        }
+    }
+
+    fun hideAddToTemplateDialog() {
+        _uiState.update {
+            it.copy(
+                addToTemplateDialogState = DialogState.Hidden,
+                addToTemplateName = InputFieldState(),
+                addToTemplateDraft = null
+            )
+        }
+    }
+
+    fun showUpdateTemplateLocationDialog() {
+        _uiState.update { it.copy(updateTemplateLocationDialogState = DialogState.Visible) }
+    }
+
+    fun hideUpdateTemplateLocationDialog() {
+        _uiState.update { it.copy(updateTemplateLocationDialogState = DialogState.Hidden) }
+    }
+
     // Helper for input validation
     private fun validateInput(
         input: String, range: ClosedRange<Double>, errorMessage: String
@@ -266,6 +331,62 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
         if (nameError == null && latitudeError == null && longitudeError == null) {
             onSuccess(currentState.name.value, currentState.latitude.value.toDouble(), currentState.longitude.value.toDouble())
         }
+    }
+
+    fun updateAddToTemplateName(value: String) {
+        _uiState.update {
+            it.copy(
+                addToTemplateName = InputFieldState(
+                    value = value,
+                    errorMessage = if (value.isBlank()) "Please provide a name" else null
+                )
+            )
+        }
+    }
+
+    fun validateAndAddTemplate(onSuccess: (name: String, latitude: Double, longitude: Double) -> Unit) {
+        val marker = _uiState.value.lastClickedLocation
+        val name = _uiState.value.addToTemplateName.value
+        val nameError = if (name.isBlank()) "Please provide a name" else null
+
+        _uiState.update {
+            it.copy(addToTemplateName = it.addToTemplateName.copy(errorMessage = nameError))
+        }
+
+        if (nameError == null && marker != null) {
+            onSuccess(name, marker.latitude, marker.longitude)
+        }
+    }
+
+    private fun createTemplateFromCurrentSettings(name: String, latitude: Double, longitude: Double): LocationTemplate {
+        return LocationTemplate(
+            id = UUID.randomUUID().toString(),
+            name = name,
+            latitude = latitude,
+            longitude = longitude,
+            useRandomize = preferencesRepository.getUseRandomize(),
+            randomizeRadius = preferencesRepository.getRandomizeRadius(),
+            useAccuracy = preferencesRepository.getUseAccuracy(),
+            accuracy = preferencesRepository.getAccuracy(),
+            useAltitude = preferencesRepository.getUseAltitude(),
+            altitude = preferencesRepository.getAltitude(),
+            useVerticalAccuracy = preferencesRepository.getUseVerticalAccuracy(),
+            verticalAccuracy = preferencesRepository.getVerticalAccuracy(),
+            useMeanSeaLevel = preferencesRepository.getUseMeanSeaLevel(),
+            meanSeaLevel = preferencesRepository.getMeanSeaLevel(),
+            useMeanSeaLevelAccuracy = preferencesRepository.getUseMeanSeaLevelAccuracy(),
+            meanSeaLevelAccuracy = preferencesRepository.getMeanSeaLevelAccuracy(),
+            useSpeed = preferencesRepository.getUseSpeed(),
+            speed = preferencesRepository.getSpeed(),
+            useSpeedAccuracy = preferencesRepository.getUseSpeedAccuracy(),
+            speedAccuracy = preferencesRepository.getSpeedAccuracy(),
+            useGpsNoise = preferencesRepository.getUseGpsNoise(),
+            gpsNoiseLevel = parseGpsNoiseLevel(preferencesRepository.getGpsNoiseLevel())
+        )
+    }
+
+    private fun parseGpsNoiseLevel(value: String): GpsNoiseLevel {
+        return runCatching { GpsNoiseLevel.valueOf(value) }.getOrDefault(GpsNoiseLevel.NORMAL)
     }
 
     // Clear AddToFavorites inputs

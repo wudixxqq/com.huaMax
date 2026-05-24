@@ -11,8 +11,12 @@ import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 import com.google.gson.reflect.TypeToken
 import com.noobexon.xposedfakelocation.data.*
+import com.noobexon.xposedfakelocation.data.model.AppLocationProfile
 import com.noobexon.xposedfakelocation.data.model.FavoriteLocation
+import com.noobexon.xposedfakelocation.data.model.GpsNoiseLevel
 import com.noobexon.xposedfakelocation.data.model.LastClickedLocation
+import com.noobexon.xposedfakelocation.data.model.LocationTemplate
+import com.noobexon.xposedfakelocation.data.model.OverrideState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.firstOrNull
@@ -45,6 +49,8 @@ class PreferencesRepository(private val context: Context) {
         val ALTITUDE = doublePreferencesKey(KEY_ALTITUDE)
         val USE_RANDOMIZE = booleanPreferencesKey(KEY_USE_RANDOMIZE)
         val RANDOMIZE_RADIUS = doublePreferencesKey(KEY_RANDOMIZE_RADIUS)
+        val USE_GPS_NOISE = booleanPreferencesKey(KEY_USE_GPS_NOISE)
+        val GPS_NOISE_LEVEL = stringPreferencesKey(KEY_GPS_NOISE_LEVEL)
         val USE_VERTICAL_ACCURACY = booleanPreferencesKey(KEY_USE_VERTICAL_ACCURACY)
         val VERTICAL_ACCURACY = floatPreferencesKey(KEY_VERTICAL_ACCURACY)
         val USE_MEAN_SEA_LEVEL = booleanPreferencesKey(KEY_USE_MEAN_SEA_LEVEL)
@@ -57,6 +63,8 @@ class PreferencesRepository(private val context: Context) {
         val SPEED_ACCURACY = floatPreferencesKey(KEY_SPEED_ACCURACY)
         val FAVORITES = stringPreferencesKey(KEY_FAVORITES)
         val TARGET_APPS = stringPreferencesKey(KEY_TARGET_APPS)
+        val APP_LOCATION_PROFILES = stringPreferencesKey(KEY_APP_LOCATION_PROFILES)
+        val LOCATION_TEMPLATES = stringPreferencesKey(KEY_LOCATION_TEMPLATES)
         val HIDE_FAKE_LOCATION_TOAST = booleanPreferencesKey(KEY_HIDE_FAKE_LOCATION_TOAST)
         val USE_INAPP_TARGET_APPS = booleanPreferencesKey(KEY_USE_INAPP_TARGET_APPS)
         val ENABLE_BROADCAST_CONTROL = booleanPreferencesKey(KEY_ENABLE_BROADCAST_CONTROL)
@@ -282,6 +290,30 @@ class PreferencesRepository(private val context: Context) {
         return java.lang.Double.longBitsToDouble(bits)
     }
 
+    fun getUseGpsNoiseFlow(): Flow<Boolean> {
+        return getPreferenceFlow(PreferenceKeys.USE_GPS_NOISE, DEFAULT_USE_GPS_NOISE)
+    }
+
+    suspend fun saveUseGpsNoise(useGpsNoise: Boolean) {
+        savePreference(PreferenceKeys.USE_GPS_NOISE, useGpsNoise, KEY_USE_GPS_NOISE, useGpsNoise)
+    }
+
+    fun getUseGpsNoise(): Boolean {
+        return sharedPrefs.getBoolean(KEY_USE_GPS_NOISE, DEFAULT_USE_GPS_NOISE)
+    }
+
+    fun getGpsNoiseLevelFlow(): Flow<String> {
+        return getPreferenceFlow(PreferenceKeys.GPS_NOISE_LEVEL, DEFAULT_GPS_NOISE_LEVEL)
+    }
+
+    suspend fun saveGpsNoiseLevel(level: String) {
+        savePreference(PreferenceKeys.GPS_NOISE_LEVEL, level, KEY_GPS_NOISE_LEVEL, level)
+    }
+
+    fun getGpsNoiseLevel(): String {
+        return sharedPrefs.getString(KEY_GPS_NOISE_LEVEL, DEFAULT_GPS_NOISE_LEVEL) ?: DEFAULT_GPS_NOISE_LEVEL
+    }
+
     // Favorites
     fun getFavoritesFlow(): Flow<List<FavoriteLocation>> {
         return context.dataStore.data
@@ -378,6 +410,143 @@ class PreferencesRepository(private val context: Context) {
             .sorted()
         val json = gson.toJson(normalized)
         savePreference(PreferenceKeys.TARGET_APPS, json, KEY_TARGET_APPS, json)
+    }
+
+    fun getAppLocationProfilesFlow(): Flow<Map<String, AppLocationProfile>> {
+        return context.dataStore.data
+            .catch { exception ->
+                if (exception is IOException) {
+                    Log.e(tag, "Error reading app location profiles: ${exception.message}")
+                    emit(emptyPreferences())
+                } else {
+                    throw exception
+                }
+            }
+            .map { preferences ->
+                parseAppLocationProfiles(preferences[PreferenceKeys.APP_LOCATION_PROFILES])
+            }
+    }
+
+    fun getLocationTemplatesFlow(): Flow<List<LocationTemplate>> {
+        return context.dataStore.data
+            .catch { exception ->
+                if (exception is IOException) {
+                    Log.e(tag, "Error reading location templates: ${exception.message}")
+                    emit(emptyPreferences())
+                } else {
+                    throw exception
+                }
+            }
+            .map { preferences ->
+                parseLocationTemplates(preferences[PreferenceKeys.LOCATION_TEMPLATES])
+            }
+    }
+
+    suspend fun saveLocationTemplate(template: LocationTemplate) {
+        val currentTemplates = getLocationTemplatesFlow().firstOrNull().orEmpty().toMutableList()
+        val index = currentTemplates.indexOfFirst { it.id == template.id }
+        if (index >= 0) {
+            currentTemplates[index] = template
+        } else {
+            currentTemplates.add(template)
+        }
+        saveLocationTemplates(currentTemplates)
+    }
+
+    suspend fun removeLocationTemplate(templateId: String) {
+        val currentTemplates = getLocationTemplatesFlow()
+            .firstOrNull()
+            .orEmpty()
+            .filterNot { it.id == templateId }
+        saveLocationTemplates(currentTemplates)
+    }
+
+    private suspend fun saveLocationTemplates(templates: List<LocationTemplate>) {
+        val normalized = templates
+            .filter { it.id.isNotBlank() && it.name.isNotBlank() }
+            .distinctBy { it.id }
+            .sortedBy { it.name.lowercase() }
+        val json = gson.toJson(normalized)
+        savePreference(PreferenceKeys.LOCATION_TEMPLATES, json, KEY_LOCATION_TEMPLATES, json)
+    }
+
+    private fun parseLocationTemplates(json: String?): List<LocationTemplate> {
+        if (json.isNullOrBlank()) return emptyList()
+        return try {
+            val type = object : TypeToken<List<LocationTemplate>>() {}.type
+            gson.fromJson<List<LocationTemplate>>(json, type)
+                .filter { it.id.isNotBlank() && it.name.isNotBlank() }
+                .map(::normalizeLocationTemplate)
+                .sortedBy { it.name.lowercase() }
+        } catch (e: JsonSyntaxException) {
+            Log.e(tag, "Error parsing location templates: ${e.message}")
+            emptyList()
+        }
+    }
+
+    suspend fun saveAppLocationProfile(profile: AppLocationProfile) {
+        val currentProfiles = getAppLocationProfilesFlow().firstOrNull().orEmpty().toMutableMap()
+        currentProfiles[profile.packageName] = profile
+        saveAppLocationProfiles(currentProfiles)
+    }
+
+    suspend fun removeAppLocationProfile(packageName: String) {
+        val currentProfiles = getAppLocationProfilesFlow().firstOrNull().orEmpty().toMutableMap()
+        currentProfiles.remove(packageName)
+        saveAppLocationProfiles(currentProfiles)
+    }
+
+    private suspend fun saveAppLocationProfiles(profiles: Map<String, AppLocationProfile>) {
+        val normalized = profiles.values
+            .filter { it.packageName.isNotBlank() }
+            .distinctBy { it.packageName }
+            .sortedBy { it.packageName }
+        val json = gson.toJson(normalized)
+        savePreference(PreferenceKeys.APP_LOCATION_PROFILES, json, KEY_APP_LOCATION_PROFILES, json)
+    }
+
+    private fun parseAppLocationProfiles(json: String?): Map<String, AppLocationProfile> {
+        if (json.isNullOrBlank()) return emptyMap()
+        return try {
+            val type = object : TypeToken<List<AppLocationProfile>>() {}.type
+            gson.fromJson<List<AppLocationProfile>>(json, type)
+                .filter { it.packageName.isNotBlank() }
+                .map(::normalizeAppLocationProfile)
+                .associateBy { it.packageName }
+        } catch (e: JsonSyntaxException) {
+            Log.e(tag, "Error parsing app location profiles: ${e.message}")
+            emptyMap()
+        }
+    }
+
+    private fun normalizeAppLocationProfile(profile: AppLocationProfile): AppLocationProfile {
+        return profile.copy(
+            randomizeOverride = profile.randomizeOverride ?: OverrideState.INHERIT,
+            accuracyOverride = profile.accuracyOverride ?: OverrideState.INHERIT,
+            altitudeOverride = profile.altitudeOverride ?: OverrideState.INHERIT,
+            verticalAccuracyOverride = profile.verticalAccuracyOverride ?: OverrideState.INHERIT,
+            meanSeaLevelOverride = profile.meanSeaLevelOverride ?: OverrideState.INHERIT,
+            meanSeaLevelAccuracyOverride = profile.meanSeaLevelAccuracyOverride ?: OverrideState.INHERIT,
+            speedOverride = profile.speedOverride ?: OverrideState.INHERIT,
+            speedAccuracyOverride = profile.speedAccuracyOverride ?: OverrideState.INHERIT,
+            gpsNoiseOverride = profile.gpsNoiseOverride ?: OverrideState.INHERIT,
+            gpsNoiseLevel = profile.gpsNoiseLevel ?: GpsNoiseLevel.NORMAL
+        )
+    }
+
+    private fun normalizeLocationTemplate(template: LocationTemplate): LocationTemplate {
+        return template.copy(
+            randomizeOverride = template.randomizeOverride ?: OverrideState.INHERIT,
+            accuracyOverride = template.accuracyOverride ?: OverrideState.INHERIT,
+            altitudeOverride = template.altitudeOverride ?: OverrideState.INHERIT,
+            verticalAccuracyOverride = template.verticalAccuracyOverride ?: OverrideState.INHERIT,
+            meanSeaLevelOverride = template.meanSeaLevelOverride ?: OverrideState.INHERIT,
+            meanSeaLevelAccuracyOverride = template.meanSeaLevelAccuracyOverride ?: OverrideState.INHERIT,
+            speedOverride = template.speedOverride ?: OverrideState.INHERIT,
+            speedAccuracyOverride = template.speedAccuracyOverride ?: OverrideState.INHERIT,
+            gpsNoiseOverride = template.gpsNoiseOverride ?: OverrideState.INHERIT,
+            gpsNoiseLevel = template.gpsNoiseLevel ?: GpsNoiseLevel.NORMAL
+        )
     }
 
     private fun parseTargetApps(json: String?): Set<String> {
