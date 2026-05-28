@@ -35,18 +35,17 @@
 
 - **Global or Per-App Location Spoofing**: Override your device's location data system-wide or on a per-app basis.
 - **Custom Coordinates**: Set precise GPS latitude and longitude coordinates.
-- **Fine-Tuned spoofing settings**: Customize other custom sensor values such as speed, speed accuracy, vertical accuracy, mean sea level, mean sea level accuracy, GPS noise, etc.
+- **Fine-Tuned Spoofing Settings**: Customize other custom sensor values such as speed, speed accuracy, vertical accuracy, mean sea level, mean sea level accuracy, GPS noise, etc.
 - **Randomization**: Set a radius for location randomization to mimic real-world movement patterns.
 - **Intuitive UI Navigation**: Easy access to maps, favorite locations, and settings.
-- **Spoof per-app templates**: Concurrently spoof multiple apps with different locations and settings at the same time using templates.
-- **Community Integration**: Direct links to Telegram, Discord, and GitHub communities for support and updates.
-- **Headless Mode (off by default)**: Once enabled in Settings, you can start/stop spoofing and set the active fake location from another app or `adb shell` via broadcast intents, no need to open the UI. See [`docs/EXTERNAL_CONTROL.md`](docs/EXTERNAL_CONTROL.md) for more details.
+- **Per-App Templates**: Define reusable location profiles (coordinates + setting overrides) and assign different templates to different target apps simultaneously.
 
 ---
 
 ## **Prerequisites**
 
 - **Rooted Android Device**: The app requires root access to function properly.
+- **Minimum Android Version**: 11 (API 30)
 - **Xposed Framework**: Install the `Xposed Framework` compatible with your Android version. It is recommended to use [LSPosed](https://github.com/LSPosed/LSPosed) as it is the most popular `Xposed Framework` manager app.
 
 ---
@@ -133,10 +132,8 @@ If you want to build by yourself:
 
    - Toggle the `Play/Stop` button to cease location spoofing.
 
-8. **Headless Mode (Optional, off by default)**
-
-   - You can control `XposedFakeLocation` from another app or from `adb shell` using broadcast intents (useful for automation or integrating with your own tools). No additional permissions or signing requirements on the caller side are needed.
-   - See [`docs/EXTERNAL_CONTROL.md`](docs/EXTERNAL_CONTROL.md) for more details.
+8. **Headless Mode (Optional. Off by default)**
+   - Drive the module from another app or `adb shell` via broadcast intents — start/stop and update coordinates without opening the UI. See [`docs/EXTERNAL_CONTROL.md`](docs/EXTERNAL_CONTROL.md) for more details.
 
 ---
 
