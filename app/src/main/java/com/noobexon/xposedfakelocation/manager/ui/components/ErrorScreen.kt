@@ -14,18 +14,16 @@ fun ErrorScreen(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.module_not_active)) },
-        text = {
-            Text(stringResource(R.string.module_not_active_description))
-        },
+        title = { Text(stringResource(R.string.dialog_module_not_active_title)) },
+        text = { Text(stringResource(R.string.dialog_module_not_active_message)) },
         confirmButton = {
             Button(onClick = onConfirm) {
-                Text(stringResource(R.string.ok))
+                Text(stringResource(R.string.action_ok))
             }
         },
         dismissButton = {
             Button(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
+                Text(stringResource(R.string.action_cancel))
             }
         }
     )

@@ -2,20 +2,57 @@ package com.noobexon.xposedfakelocation.manager.ui.settings
 
 import android.app.Activity
 import android.content.ComponentName
-import android.content.Context
-import android.content.ContextWrapper
 import android.content.pm.PackageManager
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedIconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -29,6 +66,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.noobexon.xposedfakelocation.R
+import com.noobexon.xposedfakelocation.data.model.GpsNoiseLevel
 import com.noobexon.xposedfakelocation.manager.control.ControlReceiver
 import com.noobexon.xposedfakelocation.manager.localization.LanguageOption
 import com.noobexon.xposedfakelocation.manager.localization.LocaleController
@@ -42,139 +80,145 @@ private object Dimensions {
     val CARD_ELEVATION = 2.dp
 }
 
-private data class SettingsCategory(
-    val title: String,
-    val settings: List<SettingData>
-)
-
 private object SettingDefinitions {
     @Composable
-    fun getCategories(viewModel: SettingsViewModel): List<SettingsCategory> {
-        val meter = stringResource(R.string.unit_meter)
-        val meterPerSecond = stringResource(R.string.unit_meter_per_second)
+    fun getCategories(): Map<String, List<String>> {
+        val randomizeTitle = stringResource(R.string.setting_randomize_title)
+        val gpsNoiseTitle = stringResource(R.string.setting_gps_noise_title)
+        val horizontalAccuracyTitle = stringResource(R.string.setting_horizontal_accuracy_title)
+        val verticalAccuracyTitle = stringResource(R.string.setting_vertical_accuracy_title)
+        val altitudeTitle = stringResource(R.string.setting_altitude_title)
+        val mslTitle = stringResource(R.string.setting_msl_title)
+        val mslAccuracyTitle = stringResource(R.string.setting_msl_accuracy_title)
+        val speedTitle = stringResource(R.string.setting_speed_title)
+        val speedAccuracyTitle = stringResource(R.string.setting_speed_accuracy_title)
 
-        return listOf(
-            SettingsCategory(
-                title = stringResource(R.string.location),
-                settings = listOf(
-                    DoubleSettingData(
-                        title = stringResource(R.string.randomize_nearby_location),
-                        description = stringResource(R.string.randomize_nearby_location_description),
-                        useValueState = viewModel.useRandomize.collectAsState(),
-                        valueState = viewModel.randomizeRadius.collectAsState(),
-                        setUseValue = viewModel::setUseRandomize,
-                        setValue = viewModel::setRandomizeRadius,
-                        label = stringResource(R.string.randomization_radius),
-                        unit = meter,
-                        minValue = 0f,
-                        maxValue = 2000f,
-                        step = 0.1f
-                    ),
-                    DoubleSettingData(
-                        title = stringResource(R.string.custom_horizontal_accuracy),
-                        description = stringResource(R.string.custom_horizontal_accuracy_description),
-                        useValueState = viewModel.useAccuracy.collectAsState(),
-                        valueState = viewModel.accuracy.collectAsState(),
-                        setUseValue = viewModel::setUseAccuracy,
-                        setValue = viewModel::setAccuracy,
-                        label = stringResource(R.string.horizontal_accuracy),
-                        unit = meter,
-                        minValue = 0f,
-                        maxValue = 100f,
-                        step = 1f
-                    ),
-                    FloatSettingData(
-                        title = stringResource(R.string.custom_vertical_accuracy),
-                        description = stringResource(R.string.custom_vertical_accuracy_description),
-                        useValueState = viewModel.useVerticalAccuracy.collectAsState(),
-                        valueState = viewModel.verticalAccuracy.collectAsState(),
-                        setUseValue = viewModel::setUseVerticalAccuracy,
-                        setValue = viewModel::setVerticalAccuracy,
-                        label = stringResource(R.string.vertical_accuracy),
-                        unit = meter,
-                        minValue = 0f,
-                        maxValue = 100f,
-                        step = 1f
-                    )
-                )
+        return mapOf(
+            stringResource(R.string.category_location) to listOf(
+                randomizeTitle,
+                gpsNoiseTitle,
+                horizontalAccuracyTitle,
+                verticalAccuracyTitle
             ),
-            SettingsCategory(
-                title = stringResource(R.string.altitude),
-                settings = listOf(
-                    DoubleSettingData(
-                        title = stringResource(R.string.custom_altitude),
-                        description = stringResource(R.string.custom_altitude_description),
-                        useValueState = viewModel.useAltitude.collectAsState(),
-                        valueState = viewModel.altitude.collectAsState(),
-                        setUseValue = viewModel::setUseAltitude,
-                        setValue = viewModel::setAltitude,
-                        label = stringResource(R.string.altitude),
-                        unit = meter,
-                        minValue = 0f,
-                        maxValue = 2000f,
-                        step = 0.5f
-                    ),
-                    DoubleSettingData(
-                        title = stringResource(R.string.custom_msl),
-                        description = stringResource(R.string.custom_msl_description),
-                        useValueState = viewModel.useMeanSeaLevel.collectAsState(),
-                        valueState = viewModel.meanSeaLevel.collectAsState(),
-                        setUseValue = viewModel::setUseMeanSeaLevel,
-                        setValue = viewModel::setMeanSeaLevel,
-                        label = stringResource(R.string.msl),
-                        unit = meter,
-                        minValue = -400f,
-                        maxValue = 2000f,
-                        step = 0.5f
-                    ),
-                    FloatSettingData(
-                        title = stringResource(R.string.custom_msl_accuracy),
-                        description = stringResource(R.string.custom_msl_accuracy_description),
-                        useValueState = viewModel.useMeanSeaLevelAccuracy.collectAsState(),
-                        valueState = viewModel.meanSeaLevelAccuracy.collectAsState(),
-                        setUseValue = viewModel::setUseMeanSeaLevelAccuracy,
-                        setValue = viewModel::setMeanSeaLevelAccuracy,
-                        label = stringResource(R.string.msl_accuracy),
-                        unit = meter,
-                        minValue = 0f,
-                        maxValue = 100f,
-                        step = 1f
-                    )
-                )
+            stringResource(R.string.category_altitude) to listOf(
+                altitudeTitle,
+                mslTitle,
+                mslAccuracyTitle
             ),
-            SettingsCategory(
-                title = stringResource(R.string.movement),
-                settings = listOf(
-                    FloatSettingData(
-                        title = stringResource(R.string.custom_speed),
-                        description = stringResource(R.string.custom_speed_description),
-                        useValueState = viewModel.useSpeed.collectAsState(),
-                        valueState = viewModel.speed.collectAsState(),
-                        setUseValue = viewModel::setUseSpeed,
-                        setValue = viewModel::setSpeed,
-                        label = stringResource(R.string.speed),
-                        unit = meterPerSecond,
-                        minValue = 0f,
-                        maxValue = 30f,
-                        step = 0.1f
-                    ),
-                    FloatSettingData(
-                        title = stringResource(R.string.custom_speed_accuracy),
-                        description = stringResource(R.string.custom_speed_accuracy_description),
-                        useValueState = viewModel.useSpeedAccuracy.collectAsState(),
-                        valueState = viewModel.speedAccuracy.collectAsState(),
-                        setUseValue = viewModel::setUseSpeedAccuracy,
-                        setValue = viewModel::setSpeedAccuracy,
-                        label = stringResource(R.string.speed_accuracy),
-                        unit = meterPerSecond,
-                        minValue = 0f,
-                        maxValue = 100f,
-                        step = 1f
-                    )
-                )
+            stringResource(R.string.category_movement) to listOf(
+                speedTitle,
+                speedAccuracyTitle
             )
         )
     }
+
+    @Composable
+    fun getSettings(viewModel: SettingsViewModel): List<SettingData> = listOf(
+        DoubleSettingData(
+            title = stringResource(R.string.setting_randomize_title),
+            description = stringResource(R.string.setting_randomize_description),
+            useValueState = viewModel.useRandomize.collectAsState(),
+            valueState = viewModel.randomizeRadius.collectAsState(),
+            setUseValue = viewModel::setUseRandomize,
+            setValue = viewModel::setRandomizeRadius,
+            label = stringResource(R.string.setting_randomize_radius_label),
+            unit = "m",
+            minValue = 0f,
+            maxValue = 2000f,
+            step = 0.1f
+        ),
+        DoubleSettingData(
+            title = stringResource(R.string.setting_horizontal_accuracy_title),
+            description = stringResource(R.string.setting_horizontal_accuracy_description),
+            useValueState = viewModel.useAccuracy.collectAsState(),
+            valueState = viewModel.accuracy.collectAsState(),
+            setUseValue = viewModel::setUseAccuracy,
+            setValue = viewModel::setAccuracy,
+            label = stringResource(R.string.setting_horizontal_accuracy_label),
+            unit = "m",
+            minValue = 0f,
+            maxValue = 100f,
+            step = 1f
+        ),
+        FloatSettingData(
+            title = stringResource(R.string.setting_vertical_accuracy_title),
+            description = stringResource(R.string.setting_vertical_accuracy_description),
+            useValueState = viewModel.useVerticalAccuracy.collectAsState(),
+            valueState = viewModel.verticalAccuracy.collectAsState(),
+            setUseValue = viewModel::setUseVerticalAccuracy,
+            setValue = viewModel::setVerticalAccuracy,
+            label = stringResource(R.string.setting_vertical_accuracy_label),
+            unit = "m",
+            minValue = 0f,
+            maxValue = 100f,
+            step = 1f
+        ),
+        DoubleSettingData(
+            title = stringResource(R.string.setting_altitude_title),
+            description = stringResource(R.string.setting_altitude_description),
+            useValueState = viewModel.useAltitude.collectAsState(),
+            valueState = viewModel.altitude.collectAsState(),
+            setUseValue = viewModel::setUseAltitude,
+            setValue = viewModel::setAltitude,
+            label = stringResource(R.string.setting_altitude_label),
+            unit = "m",
+            minValue = 0f,
+            maxValue = 2000f,
+            step = 0.5f
+        ),
+        DoubleSettingData(
+            title = stringResource(R.string.setting_msl_title),
+            description = stringResource(R.string.setting_msl_description),
+            useValueState = viewModel.useMeanSeaLevel.collectAsState(),
+            valueState = viewModel.meanSeaLevel.collectAsState(),
+            setUseValue = viewModel::setUseMeanSeaLevel,
+            setValue = viewModel::setMeanSeaLevel,
+            label = stringResource(R.string.setting_msl_label),
+            unit = "m",
+            minValue = -400f,
+            maxValue = 2000f,
+            step = 0.5f
+        ),
+        FloatSettingData(
+            title = stringResource(R.string.setting_msl_accuracy_title),
+            description = stringResource(R.string.setting_msl_accuracy_description),
+            useValueState = viewModel.useMeanSeaLevelAccuracy.collectAsState(),
+            valueState = viewModel.meanSeaLevelAccuracy.collectAsState(),
+            setUseValue = viewModel::setUseMeanSeaLevelAccuracy,
+            setValue = viewModel::setMeanSeaLevelAccuracy,
+            label = stringResource(R.string.setting_msl_accuracy_label),
+            unit = "m",
+            minValue = 0f,
+            maxValue = 100f,
+            step = 1f
+        ),
+        FloatSettingData(
+            title = stringResource(R.string.setting_speed_title),
+            description = stringResource(R.string.setting_speed_description),
+            useValueState = viewModel.useSpeed.collectAsState(),
+            valueState = viewModel.speed.collectAsState(),
+            setUseValue = viewModel::setUseSpeed,
+            setValue = viewModel::setSpeed,
+            label = stringResource(R.string.setting_speed_label),
+            unit = "m/s",
+            minValue = 0f,
+            maxValue = 30f,
+            step = 0.1f
+        ),
+        FloatSettingData(
+            title = stringResource(R.string.setting_speed_accuracy_title),
+            description = stringResource(R.string.setting_speed_accuracy_description),
+            useValueState = viewModel.useSpeedAccuracy.collectAsState(),
+            valueState = viewModel.speedAccuracy.collectAsState(),
+            setUseValue = viewModel::setUseSpeedAccuracy,
+            setValue = viewModel::setSpeedAccuracy,
+            label = stringResource(R.string.setting_speed_accuracy_label),
+            unit = "m/s",
+            minValue = 0f,
+            maxValue = 100f,
+            step = 1f
+        )
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -187,18 +231,19 @@ fun SettingsScreen(
     val context = LocalContext.current
     val scrollState = rememberScrollState()
     var showRebootDialog by remember { mutableStateOf(false) }
-    val selectedLanguageTag by settingsViewModel.languageTag.collectAsState()
-    val selectedLanguage = LanguageOption.fromTag(selectedLanguageTag)
-    val settingCategories = SettingDefinitions.getCategories(settingsViewModel)
+    val allSettings = SettingDefinitions.getSettings(settingsViewModel)
+    val categories = SettingDefinitions.getCategories()
+    val gpsNoiseTitle = stringResource(R.string.setting_gps_noise_title)
+    val selectedLanguage = LanguageOption.fromTag(settingsViewModel.languageTag.collectAsState().value)
 
     if (showRebootDialog) {
         AlertDialog(
             onDismissRequest = { showRebootDialog = false },
-            title = { Text(stringResource(R.string.reboot_required)) },
-            text = { Text(stringResource(R.string.reboot_required_description)) },
+            title = { Text(stringResource(R.string.dialog_reboot_required_title)) },
+            text = { Text(stringResource(R.string.dialog_reboot_required_message)) },
             confirmButton = {
                 TextButton(onClick = { showRebootDialog = false }) {
-                    Text(stringResource(R.string.ok))
+                    Text(stringResource(R.string.action_ok))
                 }
             }
         )
@@ -207,7 +252,7 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.settings)) },
+                title = { Text(stringResource(R.string.screen_settings)) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -218,7 +263,7 @@ fun SettingsScreen(
                     IconButton(onClick = { navController.navigateUp() }) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.navigate_back)
+                            contentDescription = stringResource(R.string.cd_navigate_back)
                         )
                     }
                 }
@@ -242,7 +287,7 @@ fun SettingsScreen(
             ) {
                 Spacer(modifier = Modifier.height(Dimensions.SPACING_MEDIUM))
 
-                CategoryHeader(stringResource(R.string.language))
+                CategoryHeader(stringResource(R.string.category_language))
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -250,22 +295,18 @@ fun SettingsScreen(
                     shape = RoundedCornerShape(Dimensions.CARD_CORNER_RADIUS),
                     elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.CARD_ELEVATION)
                 ) {
-                    Column(modifier = Modifier.padding(Dimensions.SPACING_SMALL)) {
-                        LanguageSettingItem(
-                            selectedLanguage = selectedLanguage,
-                            onLanguageSelected = { option ->
-                                if (option.tag != selectedLanguageTag) {
-                                    settingsViewModel.setLanguageTag(option.tag)
-                                    LocaleController.persistLanguageTag(context, option.tag)
-                                    context.findActivity()?.recreate()
-                                }
-                            }
-                        )
-                    }
+                    LanguageSettingItem(
+                        selectedLanguage = selectedLanguage,
+                        onLanguageSelected = { option ->
+                            settingsViewModel.setLanguageTag(option.tag)
+                            LocaleController.persistLanguageTag(context, option.tag)
+                            (context as? Activity)?.recreate()
+                        }
+                    )
                 }
                 Spacer(modifier = Modifier.height(Dimensions.SPACING_MEDIUM))
 
-                CategoryHeader(stringResource(R.string.notifications))
+                CategoryHeader(stringResource(R.string.category_notifications))
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -275,8 +316,8 @@ fun SettingsScreen(
                 ) {
                     Column(modifier = Modifier.padding(Dimensions.SPACING_SMALL)) {
                         BooleanSettingItem(
-                            title = stringResource(R.string.hide_fake_location_toast),
-                            description = stringResource(R.string.hide_fake_location_toast_description),
+                            title = stringResource(R.string.setting_hide_toast_title),
+                            description = stringResource(R.string.setting_hide_toast_description),
                             checked = settingsViewModel.hideFakeLocationToast.collectAsState().value,
                             onCheckedChange = settingsViewModel::setHideFakeLocationToast
                         )
@@ -284,7 +325,7 @@ fun SettingsScreen(
                 }
                 Spacer(modifier = Modifier.height(Dimensions.SPACING_MEDIUM))
 
-                CategoryHeader(stringResource(R.string.target_apps))
+                CategoryHeader(stringResource(R.string.category_target_apps))
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -294,21 +335,19 @@ fun SettingsScreen(
                 ) {
                     Column(modifier = Modifier.padding(Dimensions.SPACING_SMALL)) {
                         BooleanSettingItem(
-                            title = stringResource(R.string.use_builtin_target_app_selection),
-                            description = stringResource(R.string.use_builtin_target_app_selection_description),
+                            title = stringResource(R.string.setting_use_inapp_target_apps_title),
+                            description = stringResource(R.string.setting_use_inapp_target_apps_description),
                             checked = settingsViewModel.useInAppTargetApps.collectAsState().value,
                             onCheckedChange = { newValue ->
                                 settingsViewModel.setUseInAppTargetApps(newValue)
-                                if (newValue) {
-                                    showRebootDialog = true
-                                }
+                                if (newValue) showRebootDialog = true
                             }
                         )
                     }
                 }
                 Spacer(modifier = Modifier.height(Dimensions.SPACING_MEDIUM))
 
-                CategoryHeader(stringResource(R.string.external_control))
+                CategoryHeader(stringResource(R.string.category_external_control))
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -318,8 +357,8 @@ fun SettingsScreen(
                 ) {
                     Column(modifier = Modifier.padding(Dimensions.SPACING_SMALL)) {
                         BooleanSettingItem(
-                            title = stringResource(R.string.allow_external_broadcast_control),
-                            description = stringResource(R.string.allow_external_broadcast_control_description),
+                            title = stringResource(R.string.setting_external_broadcast_title),
+                            description = stringResource(R.string.setting_external_broadcast_description),
                             checked = settingsViewModel.enableBroadcastControl.collectAsState().value,
                             onCheckedChange = { newValue ->
                                 settingsViewModel.setEnableBroadcastControl(newValue)
@@ -330,8 +369,8 @@ fun SettingsScreen(
                 }
                 Spacer(modifier = Modifier.height(Dimensions.SPACING_MEDIUM))
 
-                settingCategories.forEach { category ->
-                    CategoryHeader(category.title)
+                categories.forEach { (category, settingsInCategory) ->
+                    CategoryHeader(category)
 
                     Card(
                         modifier = Modifier
@@ -341,12 +380,24 @@ fun SettingsScreen(
                         elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.CARD_ELEVATION)
                     ) {
                         Column(modifier = Modifier.padding(Dimensions.SPACING_SMALL)) {
-                            category.settings.forEachIndexed { index, setting ->
-                                when (setting) {
-                                    is DoubleSettingData -> DoubleSettingComposable(setting)
-                                    is FloatSettingData -> FloatSettingComposable(setting)
+                            settingsInCategory.forEach { settingTitle ->
+                                val setting = allSettings.find { it.title == settingTitle }
+                                if (settingTitle == gpsNoiseTitle) {
+                                    GpsNoiseSetting(
+                                        useGpsNoise = settingsViewModel.useGpsNoise.collectAsState().value,
+                                        gpsNoiseLevel = settingsViewModel.gpsNoiseLevel.collectAsState().value,
+                                        onUseGpsNoiseChange = settingsViewModel::setUseGpsNoise,
+                                        onGpsNoiseLevelChange = settingsViewModel::setGpsNoiseLevel
+                                    )
+                                } else {
+                                    setting?.let {
+                                        when (setting) {
+                                            is DoubleSettingData -> DoubleSettingComposable(setting)
+                                            is FloatSettingData -> FloatSettingComposable(setting)
+                                        }
+                                    }
                                 }
-                                if (index != category.settings.lastIndex) {
+                                if (settingTitle != settingsInCategory.last()) {
                                     HorizontalDivider(
                                         modifier = Modifier.padding(vertical = Dimensions.SPACING_SMALL),
                                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
@@ -365,15 +416,108 @@ fun SettingsScreen(
     }
 }
 
-private tailrec fun Context.findActivity(): Activity? {
-    return when (this) {
-        is Activity -> this
-        is ContextWrapper -> baseContext.findActivity()
-        else -> null
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LanguageSettingItem(
+    selectedLanguage: LanguageOption,
+    onLanguageSelected: (LanguageOption) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(Dimensions.SPACING_SMALL)
+    ) {
+        Text(
+            text = stringResource(R.string.setting_language_title),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Medium
+        )
+        Text(
+            text = stringResource(R.string.setting_language_description),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = Dimensions.SPACING_EXTRA_SMALL)
+        )
+        Spacer(modifier = Modifier.height(Dimensions.SPACING_SMALL))
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded }
+        ) {
+            OutlinedTextField(
+                value = stringResource(selectedLanguage.labelRes),
+                onValueChange = {},
+                readOnly = true,
+                label = { Text(stringResource(R.string.setting_language_title)) },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                modifier = Modifier
+                    .menuAnchor()
+                    .fillMaxWidth()
+            )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                LanguageOption.entries.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(stringResource(option.labelRes)) },
+                        onClick = {
+                            expanded = false
+                            onLanguageSelected(option)
+                        }
+                    )
+                }
+            }
+        }
     }
 }
 
-private fun setControlReceiverEnabled(context: Context, enabled: Boolean) {
+@Composable
+private fun GpsNoiseSetting(
+    useGpsNoise: Boolean,
+    gpsNoiseLevel: GpsNoiseLevel,
+    onUseGpsNoiseChange: (Boolean) -> Unit,
+    onGpsNoiseLevelChange: (GpsNoiseLevel) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        BooleanSettingItem(
+            title = stringResource(R.string.setting_gps_noise_title),
+            description = stringResource(R.string.setting_gps_noise_description),
+            checked = useGpsNoise,
+            onCheckedChange = onUseGpsNoiseChange
+        )
+        if (useGpsNoise) {
+            GpsNoiseLevel.entries.forEach { level ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Dimensions.SPACING_SMALL),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = gpsNoiseLevel == level,
+                        onClick = { onGpsNoiseLevelChange(level) }
+                    )
+                    Text(gpsNoiseLevelLabel(level))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun gpsNoiseLevelLabel(level: GpsNoiseLevel): String {
+    return stringResource(
+        when (level) {
+            GpsNoiseLevel.LOW -> R.string.gps_noise_low
+            GpsNoiseLevel.NORMAL -> R.string.gps_noise_normal
+            GpsNoiseLevel.HIGH -> R.string.gps_noise_high
+        }
+    )
+}
+
+private fun setControlReceiverEnabled(context: android.content.Context, enabled: Boolean) {
     val component = ComponentName(context, ControlReceiver::class.java)
     val newState = if (enabled) {
         PackageManager.COMPONENT_ENABLED_STATE_ENABLED
@@ -412,49 +556,6 @@ fun CategoryHeader(title: String) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun LanguageSettingItem(
-    selectedLanguage: LanguageOption,
-    onLanguageSelected: (LanguageOption) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded },
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(Dimensions.SPACING_SMALL)
-    ) {
-        OutlinedTextField(
-            value = stringResource(selectedLanguage.labelRes),
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(stringResource(R.string.language)) },
-            supportingText = { Text(stringResource(R.string.language_description)) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
-                .menuAnchor()
-                .fillMaxWidth()
-        )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            LanguageOption.entries.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(stringResource(option.labelRes)) },
-                    onClick = {
-                        expanded = false
-                        onLanguageSelected(option)
-                    }
-                )
-            }
-        }
-    }
-}
-
 @Composable
 fun BooleanSettingItem(
     title: String,
@@ -463,12 +564,9 @@ fun BooleanSettingItem(
     onCheckedChange: (Boolean) -> Unit
 ) {
     var showTooltip by remember { mutableStateOf(false) }
-    val infoContentDescription = stringResource(R.string.more_information_about, title)
-    val switchContentDescription = if (checked) {
-        stringResource(R.string.disable_setting, title)
-    } else {
-        stringResource(R.string.enable_setting, title)
-    }
+    val moreInfoDescription = stringResource(R.string.setting_more_info, title)
+    val disableDescription = stringResource(R.string.setting_disable, title)
+    val enableDescription = stringResource(R.string.setting_enable, title)
 
     Column(
         modifier = Modifier
@@ -480,9 +578,7 @@ fun BooleanSettingItem(
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleMedium,
@@ -495,7 +591,7 @@ fun BooleanSettingItem(
                     ) {
                         Icon(
                             Icons.Default.Info,
-                            contentDescription = infoContentDescription,
+                            contentDescription = moreInfoDescription,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp)
                         )
@@ -522,7 +618,7 @@ fun BooleanSettingItem(
                     uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
                 ),
                 modifier = Modifier.semantics {
-                    contentDescription = switchContentDescription
+                    contentDescription = if (checked) disableDescription else enableDescription
                 }
             )
         }
@@ -609,13 +705,10 @@ private fun <T : Number> SettingItem(
     parseValue: (Float) -> T
 ) {
     var showTooltip by remember { mutableStateOf(false) }
-    val infoContentDescription = stringResource(R.string.more_information_about, title)
-    val switchContentDescription = if (useValue) {
-        stringResource(R.string.disable_setting, title)
-    } else {
-        stringResource(R.string.enable_setting, title)
-    }
-    val sliderContentDescription = stringResource(R.string.adjust_setting_value, title)
+    val moreInfoDescription = stringResource(R.string.setting_more_info, title)
+    val disableDescription = stringResource(R.string.setting_disable, title)
+    val enableDescription = stringResource(R.string.setting_enable, title)
+    val adjustDescription = stringResource(R.string.setting_adjust_value, title)
 
     Column(
         modifier = Modifier
@@ -627,9 +720,7 @@ private fun <T : Number> SettingItem(
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleMedium,
@@ -642,7 +733,7 @@ private fun <T : Number> SettingItem(
                     ) {
                         Icon(
                             Icons.Default.Info,
-                            contentDescription = infoContentDescription,
+                            contentDescription = moreInfoDescription,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp)
                         )
@@ -669,7 +760,7 @@ private fun <T : Number> SettingItem(
                     uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
                 ),
                 modifier = Modifier.semantics {
-                    contentDescription = switchContentDescription
+                    contentDescription = if (useValue) disableDescription else enableDescription
                 }
             )
         }
@@ -681,9 +772,7 @@ private fun <T : Number> SettingItem(
             var showExactValue by remember { mutableStateOf(false) }
 
             LaunchedEffect(value) {
-                if (sliderValue != value.toFloat()) {
-                    sliderValue = value.toFloat()
-                }
+                if (sliderValue != value.toFloat()) sliderValue = value.toFloat()
             }
 
             Row(
@@ -691,7 +780,12 @@ private fun <T : Number> SettingItem(
                 horizontalArrangement = Arrangement.spacedBy(Dimensions.SPACING_SMALL),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                val displayText = "$label: ${valueFormatter(parseValue(sliderValue))} $unit"
+                val displayText = stringResource(
+                    R.string.setting_value_display,
+                    label,
+                    valueFormatter(parseValue(sliderValue)),
+                    unit
+                )
                 Text(
                     text = displayText,
                     style = MaterialTheme.typography.bodyMedium,
@@ -755,12 +849,8 @@ private fun <T : Number> SettingItem(
 
             Slider(
                 value = sliderValue,
-                onValueChange = { newValue ->
-                    sliderValue = newValue
-                },
-                onValueChangeFinished = {
-                    onValueChange(parseValue(sliderValue))
-                },
+                onValueChange = { newValue -> sliderValue = newValue },
+                onValueChangeFinished = { onValueChange(parseValue(sliderValue)) },
                 valueRange = minValue..maxValue,
                 steps = ((maxValue - minValue) / step).toInt() - 1,
                 colors = SliderDefaults.colors(
@@ -770,9 +860,7 @@ private fun <T : Number> SettingItem(
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .semantics {
-                        contentDescription = sliderContentDescription
-                    }
+                    .semantics { contentDescription = adjustDescription }
             )
         }
     }
@@ -819,9 +907,7 @@ data class FloatSettingData(
 ) : SettingData()
 
 @Composable
-fun DoubleSettingComposable(
-    setting: DoubleSettingData
-) {
+fun DoubleSettingComposable(setting: DoubleSettingData) {
     DoubleSettingItem(
         title = setting.title,
         description = setting.description,
@@ -838,9 +924,7 @@ fun DoubleSettingComposable(
 }
 
 @Composable
-fun FloatSettingComposable(
-    setting: FloatSettingData
-) {
+fun FloatSettingComposable(setting: FloatSettingData) {
     FloatSettingItem(
         title = setting.title,
         description = setting.description,

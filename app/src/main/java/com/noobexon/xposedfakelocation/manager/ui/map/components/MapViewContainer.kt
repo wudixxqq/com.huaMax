@@ -154,7 +154,7 @@ private fun HandleCenterMapEvent(
     mapViewModel: MapViewModel
 ) {
     val context = LocalContext.current
-    val userLocationNotAvailable = stringResource(R.string.user_location_not_available)
+    val userLocationNotAvailable = stringResource(R.string.toast_user_location_not_available)
     LaunchedEffect(Unit) {
         mapViewModel.centerMapEvent.collect {
             val userLocation = locationOverlay.myLocation
@@ -382,7 +382,7 @@ private fun LoadingSpinner() {
             CircularProgressIndicator()
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = stringResource(R.string.updating_map),
+                text = stringResource(R.string.map_updating),
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center
             )

@@ -27,6 +27,6 @@ fun PermanentlyDeniedScreen(context: Context) {
         }
         context.startActivity(intent)
     }) {
-        Text(stringResource(R.string.open_settings))
+        Text(stringResource(R.string.permissions_open_settings))
     }
 }

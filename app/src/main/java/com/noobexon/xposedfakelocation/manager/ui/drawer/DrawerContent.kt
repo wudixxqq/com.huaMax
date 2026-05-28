@@ -5,13 +5,27 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,7 +41,14 @@ import com.noobexon.xposedfakelocation.BuildConfig
 import com.noobexon.xposedfakelocation.R
 import com.noobexon.xposedfakelocation.manager.ui.navigation.Screen
 import compose.icons.LineAwesomeIcons
-import compose.icons.lineawesomeicons.*
+import compose.icons.lineawesomeicons.Discord
+import compose.icons.lineawesomeicons.Github
+import compose.icons.lineawesomeicons.HeartSolid
+import compose.icons.lineawesomeicons.InfoCircleSolid
+import compose.icons.lineawesomeicons.MapMarkerAltSolid
+import compose.icons.lineawesomeicons.MapSolid
+import compose.icons.lineawesomeicons.MobileAltSolid
+import compose.icons.lineawesomeicons.Telegram
 
 private object DrawerDimensions {
     val SECTION_SPACING = 24.dp
@@ -47,6 +68,7 @@ fun DrawerContent(
     onCloseDrawer: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    val comingSoon = stringResource(R.string.coming_soon)
 
     ModalDrawerSheet(
         drawerContainerColor = MaterialTheme.colorScheme.surface,
@@ -58,14 +80,12 @@ fun DrawerContent(
                 .padding(DrawerDimensions.DRAWER_PADDING)
         ) {
             DrawerHeader()
-
             Spacer(modifier = Modifier.height(DrawerDimensions.SECTION_SPACING))
-
-            DrawerSectionHeader(stringResource(R.string.navigation))
+            DrawerSectionHeader(stringResource(R.string.drawer_navigation))
 
             DrawerItem(
                 icon = LineAwesomeIcons.MapSolid,
-                label = stringResource(R.string.map),
+                label = stringResource(R.string.drawer_map),
                 onClick = {
                     navController.navigate(Screen.Map.route)
                     onCloseDrawer()
@@ -75,7 +95,7 @@ fun DrawerContent(
 
             DrawerItem(
                 icon = LineAwesomeIcons.HeartSolid,
-                label = stringResource(R.string.favorites),
+                label = stringResource(R.string.screen_favorites),
                 onClick = {
                     navController.navigate(Screen.Favorites.route)
                     onCloseDrawer()
@@ -85,7 +105,7 @@ fun DrawerContent(
 
             DrawerItem(
                 icon = LineAwesomeIcons.MobileAltSolid,
-                label = stringResource(R.string.target_apps),
+                label = stringResource(R.string.screen_target_apps),
                 onClick = {
                     navController.navigate(Screen.TargetApps.route)
                     onCloseDrawer()
@@ -94,8 +114,18 @@ fun DrawerContent(
             )
 
             DrawerItem(
+                icon = LineAwesomeIcons.MapMarkerAltSolid,
+                label = stringResource(R.string.screen_templates),
+                onClick = {
+                    navController.navigate(Screen.Templates.route)
+                    onCloseDrawer()
+                },
+                isSelected = navController.currentDestination?.route == Screen.Templates.route
+            )
+
+            DrawerItem(
                 icon = Icons.Default.Settings,
-                label = stringResource(R.string.settings),
+                label = stringResource(R.string.screen_settings),
                 onClick = {
                     navController.navigate(Screen.Settings.route)
                     onCloseDrawer()
@@ -104,9 +134,7 @@ fun DrawerContent(
             )
 
             Spacer(modifier = Modifier.height(DrawerDimensions.SECTION_SPACING))
-
-            DrawerSectionHeader(stringResource(R.string.community))
-            val comingSoon = stringResource(R.string.coming_soon)
+            DrawerSectionHeader(stringResource(R.string.drawer_community))
 
             DrawerItem(
                 icon = LineAwesomeIcons.Telegram,
@@ -143,12 +171,11 @@ fun DrawerContent(
             )
 
             Spacer(modifier = Modifier.height(DrawerDimensions.SECTION_SPACING))
-
-            DrawerSectionHeader(stringResource(R.string.app_info))
+            DrawerSectionHeader(stringResource(R.string.drawer_app_info))
 
             DrawerItem(
                 icon = LineAwesomeIcons.InfoCircleSolid,
-                label = stringResource(R.string.about),
+                label = stringResource(R.string.screen_about),
                 onClick = {
                     navController.navigate(Screen.About.route)
                     onCloseDrawer()
@@ -159,7 +186,7 @@ fun DrawerContent(
             Spacer(modifier = Modifier.weight(1f))
 
             Text(
-                text = stringResource(R.string.version_name, BuildConfig.VERSION_NAME),
+                text = stringResource(R.string.drawer_version, BuildConfig.VERSION_NAME),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 modifier = Modifier
@@ -185,7 +212,7 @@ fun DrawerHeader() {
         )
 
         Text(
-            text = stringResource(R.string.app_tagline),
+            text = stringResource(R.string.drawer_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

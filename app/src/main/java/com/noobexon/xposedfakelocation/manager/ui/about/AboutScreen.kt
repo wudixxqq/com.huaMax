@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,9 +33,7 @@ import com.noobexon.xposedfakelocation.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AboutScreen(
-    navController: NavController
-) {
+fun AboutScreen(navController: NavController) {
     Scaffold(
         topBar = { AboutTopAppBar(navController) }
     ) { innerPadding ->
@@ -54,7 +52,7 @@ fun AboutScreen(
 @Composable
 fun AboutTopAppBar(navController: NavController) {
     TopAppBar(
-        title = { Text(stringResource(R.string.about)) },
+        title = { Text(stringResource(R.string.screen_about)) },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.primary,
             titleContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -63,10 +61,7 @@ fun AboutTopAppBar(navController: NavController) {
         ),
         navigationIcon = {
             IconButton(onClick = { navController.navigateUp() }) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.back)
-                )
+                Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.cd_back))
             }
         }
     )
@@ -92,9 +87,7 @@ fun AboutContent() {
 fun AppTitle() {
     Text(
         text = stringResource(R.string.app_name),
-        style = MaterialTheme.typography.headlineSmall.copy(
-            fontWeight = FontWeight.Bold
-        ),
+        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
         textAlign = TextAlign.Center
     )
 }
@@ -102,7 +95,7 @@ fun AppTitle() {
 @Composable
 fun AppDescription() {
     Text(
-        text = stringResource(R.string.app_description),
+        text = stringResource(R.string.about_description),
         style = MaterialTheme.typography.bodyLarge,
         textAlign = TextAlign.Center
     )
@@ -118,10 +111,8 @@ fun AppVersionSection() {
 @Composable
 fun AppVersionTitle() {
     Text(
-        text = stringResource(R.string.version),
-        style = MaterialTheme.typography.bodyMedium.copy(
-            fontWeight = FontWeight.SemiBold
-        ),
+        text = stringResource(R.string.about_version_label),
+        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
         textAlign = TextAlign.Center,
         modifier = Modifier.padding(top = 24.dp)
     )
@@ -131,9 +122,7 @@ fun AppVersionTitle() {
 fun AppVersionValue() {
     Text(
         text = BuildConfig.VERSION_NAME,
-        style = MaterialTheme.typography.bodyMedium.copy(
-            fontWeight = FontWeight.SemiBold
-        ),
+        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
         textAlign = TextAlign.Center,
         modifier = Modifier.padding(top = 4.dp)
     )
@@ -149,10 +138,8 @@ fun AppDeveloperSection() {
 @Composable
 fun AppDeveloperTitle() {
     Text(
-        text = stringResource(R.string.developed_and_maintained_by),
-        style = MaterialTheme.typography.bodyMedium.copy(
-            fontWeight = FontWeight.SemiBold
-        ),
+        text = stringResource(R.string.about_developer_label),
+        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
         textAlign = TextAlign.Center,
         modifier = Modifier.padding(top = 8.dp)
     )

@@ -18,6 +18,6 @@ fun PermissionRequestScreen(onGrantPermission: () -> Unit) {
     )
     Spacer(modifier = Modifier.height(16.dp))
     Button(onClick = onGrantPermission) {
-        Text(stringResource(R.string.grant_permissions))
+        Text(stringResource(R.string.permissions_grant))
     }
 }

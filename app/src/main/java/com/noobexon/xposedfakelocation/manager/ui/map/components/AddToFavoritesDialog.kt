@@ -1,9 +1,18 @@
 package com.noobexon.xposedfakelocation.manager.ui.map.components
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -20,26 +29,25 @@ fun AddToFavoritesDialog(
 ) {
     val uiState by mapViewModel.uiState.collectAsStateWithLifecycle()
     val addToFavoritesState = uiState.addToFavoritesState
-
     val favoriteNameInput = addToFavoritesState.name.value
     val favoriteLatitudeInput = addToFavoritesState.latitude.value
     val favoriteLongitudeInput = addToFavoritesState.longitude.value
-    val favoriteNameError = addToFavoritesState.name.errorMessageResId
-    val favoriteLatitudeError = addToFavoritesState.latitude.errorMessageResId
-    val favoriteLongitudeError = addToFavoritesState.longitude.errorMessageResId
+    val favoriteNameError = addToFavoritesState.name.errorMessageRes
+    val favoriteLatitudeError = addToFavoritesState.latitude.errorMessageRes
+    val favoriteLongitudeError = addToFavoritesState.longitude.errorMessageRes
 
     AlertDialog(
         onDismissRequest = {
             mapViewModel.clearAddToFavoritesInputs()
             onDismissRequest()
         },
-        title = { Text(stringResource(R.string.add_to_favorites)) },
+        title = { Text(stringResource(R.string.map_add_to_favorites)) },
         text = {
             Column {
                 OutlinedTextField(
                     value = favoriteNameInput,
                     onValueChange = { mapViewModel.updateAddToFavoritesField("name", it) },
-                    label = { Text(stringResource(R.string.name)) },
+                    label = { Text(stringResource(R.string.field_name)) },
                     modifier = Modifier.fillMaxWidth(),
                     isError = favoriteNameError != null
                 )
@@ -55,7 +63,7 @@ fun AddToFavoritesDialog(
                 OutlinedTextField(
                     value = favoriteLatitudeInput,
                     onValueChange = { mapViewModel.updateAddToFavoritesField("latitude", it) },
-                    label = { Text(stringResource(R.string.latitude)) },
+                    label = { Text(stringResource(R.string.field_latitude)) },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
                     isError = favoriteLatitudeError != null
@@ -72,7 +80,7 @@ fun AddToFavoritesDialog(
                 OutlinedTextField(
                     value = favoriteLongitudeInput,
                     onValueChange = { mapViewModel.updateAddToFavoritesField("longitude", it) },
-                    label = { Text(stringResource(R.string.longitude)) },
+                    label = { Text(stringResource(R.string.field_longitude)) },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
                     isError = favoriteLongitudeError != null
@@ -95,7 +103,7 @@ fun AddToFavoritesDialog(
                     }
                 }
             ) {
-                Text(stringResource(R.string.add))
+                Text(stringResource(R.string.action_add))
             }
         },
         dismissButton = {
@@ -105,7 +113,7 @@ fun AddToFavoritesDialog(
                     onDismissRequest()
                 }
             ) {
-                Text(stringResource(R.string.cancel))
+                Text(stringResource(R.string.action_cancel))
             }
         }
     )
