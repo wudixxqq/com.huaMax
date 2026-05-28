@@ -1,33 +1,8 @@
-import java.util.Properties
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
-
-val keystorePropertiesFile = rootProject.file("keystore.properties")
-val keystoreProperties = Properties().apply {
-    if (keystorePropertiesFile.isFile) {
-        keystorePropertiesFile.inputStream().use(::load)
-    }
-}
-
-fun signingValue(propertyName: String, environmentName: String): String? {
-    return (keystoreProperties.getProperty(propertyName) ?: System.getenv(environmentName))
-        ?.takeIf { it.isNotBlank() }
-}
-
-val releaseStoreFile = signingValue("storeFile", "RELEASE_STORE_FILE")
-val releaseStorePassword = signingValue("storePassword", "RELEASE_STORE_PASSWORD")
-val releaseKeyAlias = signingValue("keyAlias", "RELEASE_KEY_ALIAS")
-val releaseKeyPassword = signingValue("keyPassword", "RELEASE_KEY_PASSWORD")
-val hasReleaseSigning = listOf(
-    releaseStoreFile,
-    releaseStorePassword,
-    releaseKeyAlias,
-    releaseKeyPassword
-).all { it != null }
 
 android {
     namespace = "com.noobexon.xposedfakelocation"
@@ -43,22 +18,8 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    signingConfigs {
-        if (hasReleaseSigning) {
-            create("release") {
-                storeFile = rootProject.file(checkNotNull(releaseStoreFile))
-                storePassword = checkNotNull(releaseStorePassword)
-                keyAlias = checkNotNull(releaseKeyAlias)
-                keyPassword = checkNotNull(releaseKeyPassword)
-            }
-        }
-    }
-
     buildTypes {
         release {
-            if (hasReleaseSigning) {
-                signingConfig = signingConfigs.getByName("release")
-            }
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
