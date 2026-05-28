@@ -4,6 +4,29 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+// Version is derived from the release tag in CI (passed via -PappVersionName=vX.Y.Z or the
+// APP_VERSION_NAME env var). Local builds fall back to the dev version below.
+val fallbackVersionName = "0.0.9"
+
+fun resolveVersionName(): String {
+    val provided = (project.findProperty("appVersionName") as String?)
+        ?: System.getenv("APP_VERSION_NAME")
+    return provided?.trim()?.removePrefix("v")?.takeIf { it.isNotEmpty() } ?: fallbackVersionName
+}
+
+// Maps a semver name (e.g. "1.2.3") to a monotonically increasing integer (10203).
+fun resolveVersionCode(versionName: String): Int {
+    val core = versionName.substringBefore("-")
+    val parts = core.split(".")
+    val major = parts.getOrNull(0)?.toIntOrNull() ?: 0
+    val minor = parts.getOrNull(1)?.toIntOrNull() ?: 0
+    val patch = parts.getOrNull(2)?.toIntOrNull() ?: 0
+    return major * 10000 + minor * 100 + patch
+}
+
+val appVersionName = resolveVersionName()
+val appVersionCode = resolveVersionCode(appVersionName)
+
 android {
     namespace = "com.noobexon.xposedfakelocation"
     compileSdk = 34
@@ -12,8 +35,8 @@ android {
         applicationId = "com.noobexon.xposedfakelocation"
         minSdk = 30
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.0.9"
+        versionCode = appVersionCode
+        versionName = appVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
