@@ -7,7 +7,9 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.noobexon.xposedfakelocation.R
 import com.noobexon.xposedfakelocation.data.model.OverrideState
 
 @Composable
@@ -31,11 +33,13 @@ fun OverrideStateSelector(
                 onClick = { onStateChange(option) },
                 label = {
                     Text(
-                        when (option) {
-                            OverrideState.INHERIT -> "Inherit"
-                            OverrideState.ENABLED -> "On"
-                            OverrideState.DISABLED -> "Off"
-                        }
+                        stringResource(
+                            when (option) {
+                                OverrideState.INHERIT -> R.string.override_inherit
+                                OverrideState.ENABLED -> R.string.override_on
+                                OverrideState.DISABLED -> R.string.override_off
+                            }
+                        )
                     )
                 },
                 modifier = Modifier.padding(end = 8.dp)

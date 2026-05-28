@@ -112,6 +112,11 @@ object PreferencesUtil {
         return getPreference<Boolean>(KEY_HIDE_FAKE_LOCATION_TOAST) ?: DEFAULT_HIDE_FAKE_LOCATION_TOAST
     }
 
+    fun getLanguageTag(): String {
+        preferences.reload()
+        return preferences.getString(KEY_LANGUAGE_TAG, DEFAULT_LANGUAGE_TAG) ?: DEFAULT_LANGUAGE_TAG
+    }
+
     fun getUseInAppTargetApps(): Boolean {
         preferences.reload()
         return if (preferences.contains(KEY_USE_INAPP_TARGET_APPS)) {

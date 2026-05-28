@@ -68,6 +68,7 @@ class PreferencesRepository(private val context: Context) {
         val HIDE_FAKE_LOCATION_TOAST = booleanPreferencesKey(KEY_HIDE_FAKE_LOCATION_TOAST)
         val USE_INAPP_TARGET_APPS = booleanPreferencesKey(KEY_USE_INAPP_TARGET_APPS)
         val ENABLE_BROADCAST_CONTROL = booleanPreferencesKey(KEY_ENABLE_BROADCAST_CONTROL)
+        val LANGUAGE_TAG = stringPreferencesKey(KEY_LANGUAGE_TAG)
     }
 
     // Generic helper for DataStore flows with error handling
@@ -731,5 +732,13 @@ class PreferencesRepository(private val context: Context) {
 
     suspend fun saveEnableBroadcastControl(enable: Boolean) {
         savePreference(PreferenceKeys.ENABLE_BROADCAST_CONTROL, enable, KEY_ENABLE_BROADCAST_CONTROL, enable)
+    }
+
+    fun getLanguageTagFlow(): Flow<String> {
+        return getPreferenceFlow(PreferenceKeys.LANGUAGE_TAG, DEFAULT_LANGUAGE_TAG)
+    }
+
+    suspend fun saveLanguageTag(languageTag: String) {
+        savePreference(PreferenceKeys.LANGUAGE_TAG, languageTag, KEY_LANGUAGE_TAG, languageTag)
     }
 }

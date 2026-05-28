@@ -5,30 +5,51 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.noobexon.xposedfakelocation.BuildConfig
-import compose.icons.LineAwesomeIcons
-import compose.icons.lineawesomeicons.*
+import com.noobexon.xposedfakelocation.R
 import com.noobexon.xposedfakelocation.manager.ui.navigation.Screen
+import compose.icons.LineAwesomeIcons
+import compose.icons.lineawesomeicons.Discord
+import compose.icons.lineawesomeicons.Github
+import compose.icons.lineawesomeicons.HeartSolid
+import compose.icons.lineawesomeicons.InfoCircleSolid
+import compose.icons.lineawesomeicons.MapMarkerAltSolid
+import compose.icons.lineawesomeicons.MapSolid
+import compose.icons.lineawesomeicons.MobileAltSolid
+import compose.icons.lineawesomeicons.Telegram
 
-// Constants for drawer dimensions and styling
 private object DrawerDimensions {
     val SECTION_SPACING = 24.dp
     val ITEM_SPACING = 4.dp
@@ -47,6 +68,7 @@ fun DrawerContent(
     onCloseDrawer: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    val comingSoon = stringResource(R.string.coming_soon)
 
     ModalDrawerSheet(
         drawerContainerColor = MaterialTheme.colorScheme.surface,
@@ -57,27 +79,23 @@ fun DrawerContent(
                 .fillMaxHeight()
                 .padding(DrawerDimensions.DRAWER_PADDING)
         ) {
-            // App Header
             DrawerHeader()
-            
             Spacer(modifier = Modifier.height(DrawerDimensions.SECTION_SPACING))
-            
-            // Navigation Section
-            DrawerSectionHeader("Navigation")
-            
+            DrawerSectionHeader(stringResource(R.string.drawer_navigation))
+
             DrawerItem(
                 icon = LineAwesomeIcons.MapSolid,
-                label = "Map",
+                label = stringResource(R.string.drawer_map),
                 onClick = {
                     navController.navigate(Screen.Map.route)
                     onCloseDrawer()
                 },
                 isSelected = navController.currentDestination?.route == Screen.Map.route
             )
-            
+
             DrawerItem(
                 icon = LineAwesomeIcons.HeartSolid,
-                label = "Favorites",
+                label = stringResource(R.string.screen_favorites),
                 onClick = {
                     navController.navigate(Screen.Favorites.route)
                     onCloseDrawer()
@@ -87,7 +105,7 @@ fun DrawerContent(
 
             DrawerItem(
                 icon = LineAwesomeIcons.MobileAltSolid,
-                label = "Target Apps",
+                label = stringResource(R.string.screen_target_apps),
                 onClick = {
                     navController.navigate(Screen.TargetApps.route)
                     onCloseDrawer()
@@ -97,33 +115,31 @@ fun DrawerContent(
 
             DrawerItem(
                 icon = LineAwesomeIcons.MapMarkerAltSolid,
-                label = "Templates",
+                label = stringResource(R.string.screen_templates),
                 onClick = {
                     navController.navigate(Screen.Templates.route)
                     onCloseDrawer()
                 },
                 isSelected = navController.currentDestination?.route == Screen.Templates.route
             )
-            
+
             DrawerItem(
                 icon = Icons.Default.Settings,
-                label = "Settings",
+                label = stringResource(R.string.screen_settings),
                 onClick = {
                     navController.navigate(Screen.Settings.route)
                     onCloseDrawer()
                 },
                 isSelected = navController.currentDestination?.route == Screen.Settings.route
             )
-            
+
             Spacer(modifier = Modifier.height(DrawerDimensions.SECTION_SPACING))
-            
-            // Community Section
-            DrawerSectionHeader("Community")
-            
+            DrawerSectionHeader(stringResource(R.string.drawer_community))
+
             DrawerItem(
                 icon = LineAwesomeIcons.Telegram,
                 label = "Telegram",
-                onClick = { Toast.makeText(context, "Coming soon!", Toast.LENGTH_SHORT).show() },
+                onClick = { Toast.makeText(context, comingSoon, Toast.LENGTH_SHORT).show() },
                 trailingIcon = {
                     Box(
                         modifier = Modifier
@@ -133,7 +149,7 @@ fun DrawerContent(
                     )
                 }
             )
-            
+
             DrawerItem(
                 icon = LineAwesomeIcons.Discord,
                 label = "Discord",
@@ -143,7 +159,7 @@ fun DrawerContent(
                     onCloseDrawer()
                 }
             )
-            
+
             DrawerItem(
                 icon = LineAwesomeIcons.Github,
                 label = "GitHub",
@@ -153,27 +169,24 @@ fun DrawerContent(
                     onCloseDrawer()
                 }
             )
-            
+
             Spacer(modifier = Modifier.height(DrawerDimensions.SECTION_SPACING))
-            
-            // About Section
-            DrawerSectionHeader("App Info")
-            
+            DrawerSectionHeader(stringResource(R.string.drawer_app_info))
+
             DrawerItem(
                 icon = LineAwesomeIcons.InfoCircleSolid,
-                label = "About",
+                label = stringResource(R.string.screen_about),
                 onClick = {
                     navController.navigate(Screen.About.route)
                     onCloseDrawer()
                 },
                 isSelected = navController.currentDestination?.route == Screen.About.route
             )
-            
-            // Add version info at the bottom
+
             Spacer(modifier = Modifier.weight(1f))
-            
+
             Text(
-                text = "Version ${BuildConfig.VERSION_NAME}",
+                text = stringResource(R.string.drawer_version, BuildConfig.VERSION_NAME),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 modifier = Modifier
@@ -192,14 +205,14 @@ fun DrawerHeader() {
             .padding(DrawerDimensions.HEADER_PADDING)
     ) {
         Text(
-            text = "XposedFakeLocation",
+            text = stringResource(R.string.app_name),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary
         )
-        
+
         Text(
-            text = "Spoof your location easily",
+            text = stringResource(R.string.drawer_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -233,13 +246,13 @@ fun DrawerItem(
     } else {
         Color.Transparent
     }
-    
+
     val contentColor = if (isSelected) {
         MaterialTheme.colorScheme.onPrimaryContainer
     } else {
         MaterialTheme.colorScheme.onSurface
     }
-    
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -269,7 +282,7 @@ fun DrawerItem(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
             )
-            
+
             trailingIcon?.invoke()
         }
     }

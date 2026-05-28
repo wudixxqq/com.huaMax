@@ -22,19 +22,18 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.compose.ui.platform.LocalContext
 import com.noobexon.xposedfakelocation.BuildConfig
-
+import com.noobexon.xposedfakelocation.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AboutScreen(
-    navController: NavController
-) {
+fun AboutScreen(navController: NavController) {
     Scaffold(
         topBar = { AboutTopAppBar(navController) }
     ) { innerPadding ->
@@ -53,7 +52,7 @@ fun AboutScreen(
 @Composable
 fun AboutTopAppBar(navController: NavController) {
     TopAppBar(
-        title = { Text("About") },
+        title = { Text(stringResource(R.string.screen_about)) },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.primary,
             titleContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -62,7 +61,7 @@ fun AboutTopAppBar(navController: NavController) {
         ),
         navigationIcon = {
             IconButton(onClick = { navController.navigateUp() }) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.cd_back))
             }
         }
     )
@@ -87,10 +86,8 @@ fun AboutContent() {
 @Composable
 fun AppTitle() {
     Text(
-        text = "XposedFakeLocation",
-        style = MaterialTheme.typography.headlineSmall.copy(
-            fontWeight = FontWeight.Bold
-        ),
+        text = stringResource(R.string.app_name),
+        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
         textAlign = TextAlign.Center
     )
 }
@@ -98,13 +95,7 @@ fun AppTitle() {
 @Composable
 fun AppDescription() {
     Text(
-        text = """
-            XposedFakeLocation is an app designed to allow users to mock their location for testing or entertainment purposes. 
-            
-            Use it responsibly, and make sure to comply with all applicable local regulations when using location services. 
-            
-            You are fully responsible for the use of this app.
-        """.trimIndent(),
+        text = stringResource(R.string.about_description),
         style = MaterialTheme.typography.bodyLarge,
         textAlign = TextAlign.Center
     )
@@ -120,10 +111,8 @@ fun AppVersionSection() {
 @Composable
 fun AppVersionTitle() {
     Text(
-        text = "Version:",
-        style = MaterialTheme.typography.bodyMedium.copy(
-            fontWeight = FontWeight.SemiBold
-        ),
+        text = stringResource(R.string.about_version_label),
+        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
         textAlign = TextAlign.Center,
         modifier = Modifier.padding(top = 24.dp)
     )
@@ -133,9 +122,7 @@ fun AppVersionTitle() {
 fun AppVersionValue() {
     Text(
         text = BuildConfig.VERSION_NAME,
-        style = MaterialTheme.typography.bodyMedium.copy(
-            fontWeight = FontWeight.SemiBold
-        ),
+        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
         textAlign = TextAlign.Center,
         modifier = Modifier.padding(top = 4.dp)
     )
@@ -151,10 +138,8 @@ fun AppDeveloperSection() {
 @Composable
 fun AppDeveloperTitle() {
     Text(
-        text = "Developed and maintained by:",
-        style = MaterialTheme.typography.bodyMedium.copy(
-            fontWeight = FontWeight.SemiBold
-        ),
+        text = stringResource(R.string.about_developer_label),
+        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
         textAlign = TextAlign.Center,
         modifier = Modifier.padding(top = 8.dp)
     )

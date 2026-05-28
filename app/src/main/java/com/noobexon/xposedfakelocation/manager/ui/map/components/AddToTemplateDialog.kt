@@ -20,8 +20,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.noobexon.xposedfakelocation.R
 import com.noobexon.xposedfakelocation.data.model.GpsNoiseLevel
 import com.noobexon.xposedfakelocation.data.model.LocationTemplate
 import com.noobexon.xposedfakelocation.data.model.OverrideState
@@ -31,6 +33,7 @@ import com.noobexon.xposedfakelocation.manager.ui.settings.CategoryHeader
 import com.noobexon.xposedfakelocation.manager.ui.settings.DoubleSettingItem
 import com.noobexon.xposedfakelocation.manager.ui.settings.FloatSettingItem
 import com.noobexon.xposedfakelocation.manager.ui.settings.OverrideStateSelector
+import com.noobexon.xposedfakelocation.manager.ui.settings.gpsNoiseLevelLabel
 
 @Composable
 fun AddToTemplateDialog(
@@ -75,7 +78,7 @@ fun AddToTemplateDialog(
 
     AlertDialog(
         onDismissRequest = onDismissRequest,
-        title = { Text("Add to Templates") },
+        title = { Text(stringResource(R.string.map_add_to_templates)) },
         text = {
             Column(
                 modifier = Modifier
@@ -86,49 +89,53 @@ fun AddToTemplateDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Name") },
+                    label = { Text(stringResource(R.string.field_name)) },
                     modifier = Modifier.fillMaxWidth(),
                     isError = nameError
                 )
                 if (nameError) {
                     Text(
-                        text = "Please provide a name",
+                        text = stringResource(R.string.validation_name_required),
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(start = 16.dp)
                     )
                 }
                 Text(
-                    text = "Lat: ${draft.latitude}, Lon: ${draft.longitude}",
+                    text = stringResource(
+                            R.string.coordinates_lat_lon,
+                            draft.latitude.toString(),
+                            draft.longitude.toString()
+                        ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 BooleanSettingItem(
-                    title = "Advanced",
-                    description = "Override the current global settings before saving this template",
+                    title = stringResource(R.string.profile_advanced_title),
+                    description = stringResource(R.string.template_advanced_description),
                     checked = advanced,
                     onCheckedChange = { advanced = it }
                 )
                 if (advanced) {
-                    CategoryHeader("Location")
-                    OverrideStateSelector("Randomize Nearby Location", randomizeOverride) { randomizeOverride = it; useRandomize = it == OverrideState.ENABLED }
+                    CategoryHeader(stringResource(R.string.category_location))
+                    OverrideStateSelector(stringResource(R.string.setting_randomize_title), randomizeOverride) { randomizeOverride = it; useRandomize = it == OverrideState.ENABLED }
                     if (randomizeOverride == OverrideState.ENABLED) {
                     DoubleSettingItem(
-                        title = "Randomize Nearby Location",
-                        description = "Randomly places your location within the specified radius",
+                        title = stringResource(R.string.setting_randomize_title),
+                        description = stringResource(R.string.setting_randomize_description),
                         useValue = true,
                         onUseValueChange = { useRandomize = it },
                         value = randomizeRadius,
                         onValueChange = { randomizeRadius = it },
-                        label = "Randomization Radius",
+                        label = stringResource(R.string.setting_randomize_radius_label),
                         unit = "m",
                         minValue = 0f,
                         maxValue = 2000f,
                         step = 0.1f
                     )
                     }
-                    OverrideStateSelector("GPS noise", gpsNoiseOverride) { gpsNoiseOverride = it; useGpsNoise = it == OverrideState.ENABLED }
+                    OverrideStateSelector(stringResource(R.string.setting_gps_noise_title), gpsNoiseOverride) { gpsNoiseOverride = it; useGpsNoise = it == OverrideState.ENABLED }
                     if (gpsNoiseOverride == OverrideState.ENABLED) {
                         GpsNoiseLevel.entries.forEach { level ->
                             Row(
@@ -138,36 +145,36 @@ fun AddToTemplateDialog(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 RadioButton(selected = gpsNoiseLevel == level, onClick = { gpsNoiseLevel = level })
-                                Text(level.name.lowercase().replaceFirstChar { it.uppercase() })
+                                Text(gpsNoiseLevelLabel(level))
                             }
                         }
                     }
-                    OverrideStateSelector("Custom Horizontal Accuracy", accuracyOverride) { accuracyOverride = it; useAccuracy = it == OverrideState.ENABLED }
+                    OverrideStateSelector(stringResource(R.string.setting_horizontal_accuracy_title), accuracyOverride) { accuracyOverride = it; useAccuracy = it == OverrideState.ENABLED }
                     if (accuracyOverride == OverrideState.ENABLED) {
                     DoubleSettingItem(
-                        title = "Custom Horizontal Accuracy",
-                        description = "Sets the horizontal accuracy of your location",
+                        title = stringResource(R.string.setting_horizontal_accuracy_title),
+                        description = stringResource(R.string.setting_horizontal_accuracy_description),
                         useValue = true,
                         onUseValueChange = { useAccuracy = it },
                         value = accuracy,
                         onValueChange = { accuracy = it },
-                        label = "Horizontal Accuracy",
+                        label = stringResource(R.string.setting_horizontal_accuracy_label),
                         unit = "m",
                         minValue = 0f,
                         maxValue = 100f,
                         step = 1f
                     )
                     }
-                    OverrideStateSelector("Custom Vertical Accuracy", verticalAccuracyOverride) { verticalAccuracyOverride = it; useVerticalAccuracy = it == OverrideState.ENABLED }
+                    OverrideStateSelector(stringResource(R.string.setting_vertical_accuracy_title), verticalAccuracyOverride) { verticalAccuracyOverride = it; useVerticalAccuracy = it == OverrideState.ENABLED }
                     if (verticalAccuracyOverride == OverrideState.ENABLED) {
                     FloatSettingItem(
-                        title = "Custom Vertical Accuracy",
-                        description = "Sets the vertical accuracy of your location",
+                        title = stringResource(R.string.setting_vertical_accuracy_title),
+                        description = stringResource(R.string.setting_vertical_accuracy_description),
                         useValue = true,
                         onUseValueChange = { useVerticalAccuracy = it },
                         value = verticalAccuracy,
                         onValueChange = { verticalAccuracy = it },
-                        label = "Vertical Accuracy",
+                        label = stringResource(R.string.setting_vertical_accuracy_label),
                         unit = "m",
                         minValue = 0f,
                         maxValue = 100f,
@@ -175,49 +182,49 @@ fun AddToTemplateDialog(
                     )
                     }
 
-                    CategoryHeader("Altitude")
-                    OverrideStateSelector("Custom Altitude", altitudeOverride) { altitudeOverride = it; useAltitude = it == OverrideState.ENABLED }
+                    CategoryHeader(stringResource(R.string.category_altitude))
+                    OverrideStateSelector(stringResource(R.string.setting_altitude_title), altitudeOverride) { altitudeOverride = it; useAltitude = it == OverrideState.ENABLED }
                     if (altitudeOverride == OverrideState.ENABLED) {
                     DoubleSettingItem(
-                        title = "Custom Altitude",
-                        description = "Sets a custom altitude for your location",
+                        title = stringResource(R.string.setting_altitude_title),
+                        description = stringResource(R.string.setting_altitude_description),
                         useValue = true,
                         onUseValueChange = { useAltitude = it },
                         value = altitude,
                         onValueChange = { altitude = it },
-                        label = "Altitude",
+                        label = stringResource(R.string.setting_altitude_label),
                         unit = "m",
                         minValue = 0f,
                         maxValue = 2000f,
                         step = 0.5f
                     )
                     }
-                    OverrideStateSelector("Custom MSL", meanSeaLevelOverride) { meanSeaLevelOverride = it; useMeanSeaLevel = it == OverrideState.ENABLED }
+                    OverrideStateSelector(stringResource(R.string.setting_msl_title), meanSeaLevelOverride) { meanSeaLevelOverride = it; useMeanSeaLevel = it == OverrideState.ENABLED }
                     if (meanSeaLevelOverride == OverrideState.ENABLED) {
                     DoubleSettingItem(
-                        title = "Custom MSL",
-                        description = "Sets a custom mean sea level value",
+                        title = stringResource(R.string.setting_msl_title),
+                        description = stringResource(R.string.setting_msl_description),
                         useValue = true,
                         onUseValueChange = { useMeanSeaLevel = it },
                         value = meanSeaLevel,
                         onValueChange = { meanSeaLevel = it },
-                        label = "MSL",
+                        label = stringResource(R.string.setting_msl_label),
                         unit = "m",
                         minValue = -400f,
                         maxValue = 2000f,
                         step = 0.5f
                     )
                     }
-                    OverrideStateSelector("Custom MSL Accuracy", meanSeaLevelAccuracyOverride) { meanSeaLevelAccuracyOverride = it; useMeanSeaLevelAccuracy = it == OverrideState.ENABLED }
+                    OverrideStateSelector(stringResource(R.string.setting_msl_accuracy_title), meanSeaLevelAccuracyOverride) { meanSeaLevelAccuracyOverride = it; useMeanSeaLevelAccuracy = it == OverrideState.ENABLED }
                     if (meanSeaLevelAccuracyOverride == OverrideState.ENABLED) {
                     FloatSettingItem(
-                        title = "Custom MSL Accuracy",
-                        description = "Sets the accuracy of the mean sea level value",
+                        title = stringResource(R.string.setting_msl_accuracy_title),
+                        description = stringResource(R.string.setting_msl_accuracy_description),
                         useValue = true,
                         onUseValueChange = { useMeanSeaLevelAccuracy = it },
                         value = meanSeaLevelAccuracy,
                         onValueChange = { meanSeaLevelAccuracy = it },
-                        label = "MSL Accuracy",
+                        label = stringResource(R.string.setting_msl_accuracy_label),
                         unit = "m",
                         minValue = 0f,
                         maxValue = 100f,
@@ -225,33 +232,33 @@ fun AddToTemplateDialog(
                     )
                     }
 
-                    CategoryHeader("Movement")
-                    OverrideStateSelector("Custom Speed", speedOverride) { speedOverride = it; useSpeed = it == OverrideState.ENABLED }
+                    CategoryHeader(stringResource(R.string.category_movement))
+                    OverrideStateSelector(stringResource(R.string.setting_speed_title), speedOverride) { speedOverride = it; useSpeed = it == OverrideState.ENABLED }
                     if (speedOverride == OverrideState.ENABLED) {
                     FloatSettingItem(
-                        title = "Custom Speed",
-                        description = "Sets a custom speed for your location",
+                        title = stringResource(R.string.setting_speed_title),
+                        description = stringResource(R.string.setting_speed_description),
                         useValue = true,
                         onUseValueChange = { useSpeed = it },
                         value = speed,
                         onValueChange = { speed = it },
-                        label = "Speed",
+                        label = stringResource(R.string.setting_speed_label),
                         unit = "m/s",
                         minValue = 0f,
                         maxValue = 30f,
                         step = 0.1f
                     )
                     }
-                    OverrideStateSelector("Custom Speed Accuracy", speedAccuracyOverride) { speedAccuracyOverride = it; useSpeedAccuracy = it == OverrideState.ENABLED }
+                    OverrideStateSelector(stringResource(R.string.setting_speed_accuracy_title), speedAccuracyOverride) { speedAccuracyOverride = it; useSpeedAccuracy = it == OverrideState.ENABLED }
                     if (speedAccuracyOverride == OverrideState.ENABLED) {
                     FloatSettingItem(
-                        title = "Custom Speed Accuracy",
-                        description = "Sets the accuracy of your speed value",
+                        title = stringResource(R.string.setting_speed_accuracy_title),
+                        description = stringResource(R.string.setting_speed_accuracy_description),
                         useValue = true,
                         onUseValueChange = { useSpeedAccuracy = it },
                         value = speedAccuracy,
                         onValueChange = { speedAccuracy = it },
-                        label = "Speed Accuracy",
+                        label = stringResource(R.string.setting_speed_accuracy_label),
                         unit = "m/s",
                         minValue = 0f,
                         maxValue = 100f,
@@ -302,12 +309,12 @@ fun AddToTemplateDialog(
                     onAddTemplate(template)
                 }
             ) {
-                Text("Add")
+                Text(stringResource(R.string.action_add))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismissRequest) {
-                Text("Cancel")
+                Text(stringResource(R.string.action_cancel))
             }
         }
     )

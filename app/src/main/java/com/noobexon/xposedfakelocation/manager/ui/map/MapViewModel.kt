@@ -1,8 +1,10 @@
 package com.noobexon.xposedfakelocation.manager.ui.map
 
 import android.app.Application
+import androidx.annotation.StringRes
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.noobexon.xposedfakelocation.R
 import com.noobexon.xposedfakelocation.data.DEFAULT_MAP_ZOOM
 import com.noobexon.xposedfakelocation.data.model.FavoriteLocation
 import com.noobexon.xposedfakelocation.data.model.GpsNoiseLevel
@@ -38,7 +40,7 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * Represents field input state with value and validation error message
      */
-    data class InputFieldState(val value: String = "", val errorMessage: String? = null)
+    data class InputFieldState(val value: String = "", @StringRes val errorMessageRes: Int? = null)
 
     /**
      * Represents the UI state for the favorites input dialog
@@ -166,17 +168,17 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
     // Update specific fields in the FavoritesInputState
     fun updateAddToFavoritesField(fieldName: String, newValue: String) {
         val currentState = _uiState.value.addToFavoritesState
-        val errorMessage = when (fieldName) {
-            "name" -> if (newValue.isBlank()) "Please provide a name" else null
-            "latitude" -> validateInput(newValue, -90.0..90.0, "Latitude must be between -90 and 90")
-            "longitude" -> validateInput(newValue, -180.0..180.0, "Longitude must be between -180 and 180")
+        val errorMessageRes = when (fieldName) {
+            "name" -> if (newValue.isBlank()) R.string.validation_name_required else null
+            "latitude" -> validateInput(newValue, -90.0..90.0, R.string.validation_latitude_range)
+            "longitude" -> validateInput(newValue, -180.0..180.0, R.string.validation_longitude_range)
             else -> null
         }
 
         val updatedState = when (fieldName) {
-            "name" -> currentState.copy(name = currentState.name.copy(value = newValue, errorMessage = errorMessage))
-            "latitude" -> currentState.copy(latitude = currentState.latitude.copy(value = newValue, errorMessage = errorMessage))
-            "longitude" -> currentState.copy(longitude = currentState.longitude.copy(value = newValue, errorMessage = errorMessage))
+            "name" -> currentState.copy(name = currentState.name.copy(value = newValue, errorMessageRes = errorMessageRes))
+            "latitude" -> currentState.copy(latitude = currentState.latitude.copy(value = newValue, errorMessageRes = errorMessageRes))
+            "longitude" -> currentState.copy(longitude = currentState.longitude.copy(value = newValue, errorMessageRes = errorMessageRes))
             else -> currentState
         }
         
@@ -267,19 +269,19 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
 
     // Helper for input validation
     private fun validateInput(
-        input: String, range: ClosedRange<Double>, errorMessage: String
-    ): String? {
+        input: String, range: ClosedRange<Double>, @StringRes errorMessageRes: Int
+    ): Int? {
         val value = input.toDoubleOrNull()
-        return if (value == null || value !in range) errorMessage else null
+        return if (value == null || value !in range) errorMessageRes else null
     }
 
     // Validate GoToPoint inputs
     fun validateAndGo(onSuccess: (latitude: Double, longitude: Double) -> Unit) {
         val (latField, lonField) = _uiState.value.goToPointState
-        val latitudeError = validateInput(latField.value, -90.0..90.0, "Latitude must be between -90 and 90")
-        val longitudeError = validateInput(lonField.value, -180.0..180.0, "Longitude must be between -180 and 180")
+        val latitudeError = validateInput(latField.value, -90.0..90.0, R.string.validation_latitude_range)
+        val longitudeError = validateInput(lonField.value, -180.0..180.0, R.string.validation_longitude_range)
 
-        val updatedGoToPointState = latField.copy(errorMessage = latitudeError) to lonField.copy(errorMessage = longitudeError)
+        val updatedGoToPointState = latField.copy(errorMessageRes = latitudeError) to lonField.copy(errorMessageRes = longitudeError)
         _uiState.update { it.copy(goToPointState = updatedGoToPointState) }
 
         if (latitudeError == null && longitudeError == null) {
@@ -316,14 +318,14 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
     fun validateAndAddFavorite(onSuccess: (name: String, latitude: Double, longitude: Double) -> Unit) {
         val currentState = _uiState.value.addToFavoritesState
 
-        val latitudeError = validateInput(currentState.latitude.value, -90.0..90.0, "Latitude must be between -90 and 90")
-        val longitudeError = validateInput(currentState.longitude.value, -180.0..180.0, "Longitude must be between -180 and 180")
-        val nameError = if (currentState.name.value.isBlank()) "Please provide a name" else null
+        val latitudeError = validateInput(currentState.latitude.value, -90.0..90.0, R.string.validation_latitude_range)
+        val longitudeError = validateInput(currentState.longitude.value, -180.0..180.0, R.string.validation_longitude_range)
+        val nameError = if (currentState.name.value.isBlank()) R.string.validation_name_required else null
 
         val updatedState = currentState.copy(
-            name = currentState.name.copy(errorMessage = nameError),
-            latitude = currentState.latitude.copy(errorMessage = latitudeError),
-            longitude = currentState.longitude.copy(errorMessage = longitudeError)
+            name = currentState.name.copy(errorMessageRes = nameError),
+            latitude = currentState.latitude.copy(errorMessageRes = latitudeError),
+            longitude = currentState.longitude.copy(errorMessageRes = longitudeError)
         )
         
         _uiState.update { it.copy(addToFavoritesState = updatedState) }
@@ -338,7 +340,7 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
             it.copy(
                 addToTemplateName = InputFieldState(
                     value = value,
-                    errorMessage = if (value.isBlank()) "Please provide a name" else null
+                    errorMessageRes = if (value.isBlank()) R.string.validation_name_required else null
                 )
             )
         }
@@ -347,10 +349,10 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
     fun validateAndAddTemplate(onSuccess: (name: String, latitude: Double, longitude: Double) -> Unit) {
         val marker = _uiState.value.lastClickedLocation
         val name = _uiState.value.addToTemplateName.value
-        val nameError = if (name.isBlank()) "Please provide a name" else null
+        val nameError = if (name.isBlank()) R.string.validation_name_required else null
 
         _uiState.update {
-            it.copy(addToTemplateName = it.addToTemplateName.copy(errorMessage = nameError))
+            it.copy(addToTemplateName = it.addToTemplateName.copy(errorMessageRes = nameError))
         }
 
         if (nameError == null && marker != null) {

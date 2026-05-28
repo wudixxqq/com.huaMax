@@ -18,8 +18,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.noobexon.xposedfakelocation.R
 import com.noobexon.xposedfakelocation.data.model.LocationTemplate
 import org.osmdroid.util.GeoPoint
 
@@ -40,27 +42,29 @@ fun UpdateTemplateLocationDialog(
         if (trimmedQuery.isEmpty()) {
             templates
         } else {
-            templates.filter {
-                it.name.contains(trimmedQuery, ignoreCase = true)
-            }
+            templates.filter { it.name.contains(trimmedQuery, ignoreCase = true) }
         }
     }
 
     AlertDialog(
         onDismissRequest = onDismissRequest,
-        title = { Text("Update Template Location") },
+        title = { Text(stringResource(R.string.map_update_template_location)) },
         text = {
             Column {
                 if (marker != null) {
                     Text(
-                        text = "New location: ${marker.latitude}, ${marker.longitude}",
+                        text = stringResource(
+                            R.string.new_location_format,
+                            marker.latitude.toString(),
+                            marker.longitude.toString()
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                 }
                 if (templates.isEmpty()) {
-                    Text("No templates available.")
+                    Text(stringResource(R.string.template_no_available))
                 } else {
                     ExposedDropdownMenuBox(
                         expanded = expanded,
@@ -75,7 +79,7 @@ fun UpdateTemplateLocationDialog(
                                 }
                                 expanded = true
                             },
-                            label = { Text("Template") },
+                            label = { Text(stringResource(R.string.field_template)) },
                             singleLine = true,
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                             modifier = Modifier
@@ -96,7 +100,11 @@ fun UpdateTemplateLocationDialog(
                                                 overflow = TextOverflow.Ellipsis
                                             )
                                             Text(
-                                                text = "Current: ${template.latitude}, ${template.longitude}",
+                                                text = stringResource(
+                                                    R.string.current_location_format,
+                                                    template.latitude.toString(),
+                                                    template.longitude.toString()
+                                                ),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 maxLines = 1,
@@ -113,7 +121,7 @@ fun UpdateTemplateLocationDialog(
                             }
                             if (filteredTemplates.isEmpty()) {
                                 DropdownMenuItem(
-                                    text = { Text("No matching templates") },
+                                    text = { Text(stringResource(R.string.template_no_matching)) },
                                     onClick = {}
                                 )
                             }
@@ -133,12 +141,12 @@ fun UpdateTemplateLocationDialog(
                     }
                 }
             ) {
-                Text("Update")
+                Text(stringResource(R.string.action_update))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismissRequest) {
-                Text("Cancel")
+                Text(stringResource(R.string.action_cancel))
             }
         }
     )

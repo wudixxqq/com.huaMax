@@ -30,11 +30,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.noobexon.xposedfakelocation.R
 import com.noobexon.xposedfakelocation.data.model.LocationTemplate
 import com.noobexon.xposedfakelocation.manager.ui.templates.components.TemplateEditorDialog
 
@@ -56,7 +58,7 @@ fun TemplatesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Templates") },
+                title = { Text(stringResource(R.string.screen_templates)) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -64,14 +66,17 @@ fun TemplatesScreen(
                 ),
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Navigate back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.cd_navigate_back)
+                        )
                     }
                 }
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = viewModel::addTemplate) {
-                Icon(Icons.Default.Add, contentDescription = "Add template")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.cd_add_template))
             }
         }
     ) { innerPadding ->
@@ -84,7 +89,7 @@ fun TemplatesScreen(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("No templates yet.")
+                Text(stringResource(R.string.template_empty))
             }
         } else {
             LazyColumn(
@@ -131,7 +136,11 @@ private fun TemplateRow(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = "Lat: ${template.latitude}, Lon: ${template.longitude}",
+                    text = stringResource(
+                        R.string.coordinates_lat_lon,
+                        template.latitude.toString(),
+                        template.longitude.toString()
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -139,10 +148,16 @@ private fun TemplateRow(
                 )
             }
             IconButton(onClick = onEdit) {
-                Icon(Icons.Default.Edit, contentDescription = "Edit ${template.name}")
+                Icon(
+                    Icons.Default.Edit,
+                    contentDescription = stringResource(R.string.cd_edit_named_item, template.name)
+                )
             }
             IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete ${template.name}")
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = stringResource(R.string.cd_delete_named_item, template.name)
+                )
             }
         }
     }

@@ -11,8 +11,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.noobexon.xposedfakelocation.R
 import com.noobexon.xposedfakelocation.manager.ui.navigation.Screen
 import com.noobexon.xposedfakelocation.manager.ui.permissions.components.PermanentlyDeniedScreen
 import com.noobexon.xposedfakelocation.manager.ui.permissions.components.PermissionRequestScreen
@@ -23,7 +25,7 @@ fun PermissionsScreen(navController: NavController, permissionsViewModel: Permis
     val activity = context as? Activity
 
     if (activity == null) {
-        Text("Error: Unable to access activity.")
+        Text(stringResource(R.string.permissions_activity_error))
         return
     }
 

@@ -67,7 +67,11 @@ class MainHook : IXposedHookLoadPackage {
                         if (!PreferencesUtil.getHideFakeLocationToast() &&
                             LocationUtil.shouldSpoofPackage(lpparam.packageName)
                         ) {
-                            Toast.makeText(it, "Fake Location Is Active!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                it,
+                                HookMessages.fakeLocationActive(PreferencesUtil.getLanguageTag()),
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     }
                     locationApiHooks = LocationApiHooks(lpparam).also { it.initHooks() }

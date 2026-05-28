@@ -8,13 +8,15 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.noobexon.xposedfakelocation.R
 
 @Composable
 fun PermanentlyDeniedScreen(context: Context) {
     Text(
-        text = "You have permanently denied location permissions. Please enable them from settings and restart the app.",
+        text = stringResource(R.string.permissions_permanently_denied),
         style = MaterialTheme.typography.bodyLarge,
         textAlign = TextAlign.Center
     )
@@ -25,6 +27,6 @@ fun PermanentlyDeniedScreen(context: Context) {
         }
         context.startActivity(intent)
     }) {
-        Text("Open Settings")
+        Text(stringResource(R.string.permissions_open_settings))
     }
 }

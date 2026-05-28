@@ -1,4 +1,4 @@
-﻿package com.noobexon.xposedfakelocation.manager.ui.targetapps
+package com.noobexon.xposedfakelocation.manager.ui.targetapps
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -23,6 +23,8 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -30,8 +32,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -40,13 +40,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.platform.LocalContext
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.noobexon.xposedfakelocation.R
 import com.noobexon.xposedfakelocation.manager.ui.targetapps.components.ProfileEditorDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -73,7 +75,7 @@ fun TargetAppsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Target Apps") },
+                title = { Text(stringResource(R.string.screen_target_apps)) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -81,7 +83,10 @@ fun TargetAppsScreen(
                 ),
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Navigate back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.cd_navigate_back)
+                        )
                     }
                 }
             )
@@ -93,15 +98,12 @@ fun TargetAppsScreen(
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp)
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
-
-
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
             OutlinedTextField(
                 value = uiState.searchQuery,
                 onValueChange = viewModel::updateSearchQuery,
-                label = { Text("Search apps or package names") },
+                label = { Text(stringResource(R.string.target_apps_search_label)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -109,7 +111,7 @@ fun TargetAppsScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "${uiState.selectedPackages.size} selected",
+                text = stringResource(R.string.target_apps_selected_count, uiState.selectedPackages.size),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -186,7 +188,10 @@ private fun TargetAppRow(
             )
 
             IconButton(onClick = onEdit) {
-                Icon(Icons.Default.Edit, contentDescription = "Edit ${app.label} profile")
+                Icon(
+                    Icons.Default.Edit,
+                    contentDescription = stringResource(R.string.cd_edit_app_profile, app.label)
+                )
             }
         }
     }
@@ -207,7 +212,7 @@ private fun AppIcon(
     if (iconBitmap != null) {
         Image(
             bitmap = iconBitmap.asImageBitmap(),
-            contentDescription = "$label icon",
+            contentDescription = stringResource(R.string.cd_app_icon, label),
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)

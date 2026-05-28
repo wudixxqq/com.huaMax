@@ -19,10 +19,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.noobexon.xposedfakelocation.R
 import com.noobexon.xposedfakelocation.data.DEFAULT_MAP_ZOOM
 import com.noobexon.xposedfakelocation.data.LOCATION_DETECTION_DELAY_MS
 import com.noobexon.xposedfakelocation.data.LOCATION_DETECTION_MAX_ATTEMPTS
@@ -152,13 +154,14 @@ private fun HandleCenterMapEvent(
     mapViewModel: MapViewModel
 ) {
     val context = LocalContext.current
+    val userLocationNotAvailable = stringResource(R.string.toast_user_location_not_available)
     LaunchedEffect(Unit) {
         mapViewModel.centerMapEvent.collect {
             val userLocation = locationOverlay.myLocation
             if (userLocation != null) {
                 mapView.controller.animateTo(userLocation)
             } else {
-                Toast.makeText(context, "User location not available", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, userLocationNotAvailable, Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -379,7 +382,7 @@ private fun LoadingSpinner() {
             CircularProgressIndicator()
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Updating Map...",
+                text = stringResource(R.string.map_updating),
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center
             )

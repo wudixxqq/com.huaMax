@@ -303,6 +303,15 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     )
     val enableBroadcastControl: StateFlow<Boolean> = _enableBroadcastControlPreference.state
 
+    // Preference for Language
+    private val _languageTagPreference = StringPreference(
+        DEFAULT_LANGUAGE_TAG,
+        preferencesRepository.getLanguageTagFlow(),
+        preferencesRepository::saveLanguageTag,
+        viewModelScope
+    )
+    val languageTag: StateFlow<String> = _languageTagPreference.state
+
     // Setter methods for all preferences
     fun setUseAccuracy(value: Boolean) = _useAccuracyPreference.setValue(value)
     fun setAccuracy(value: Double) = _accuracyPreference.setValue(value)
@@ -325,4 +334,5 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setHideFakeLocationToast(value: Boolean) = _hideFakeLocationToastPreference.setValue(value)
     fun setUseInAppTargetApps(value: Boolean) = _useInAppTargetAppsPreference.setValue(value)
     fun setEnableBroadcastControl(value: Boolean) = _enableBroadcastControlPreference.setValue(value)
+    fun setLanguageTag(value: String) = _languageTagPreference.setValue(value)
 }
