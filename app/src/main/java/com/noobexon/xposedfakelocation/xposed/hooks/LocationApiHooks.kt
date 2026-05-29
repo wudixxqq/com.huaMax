@@ -85,7 +85,6 @@ class LocationApiHooks(val appLpparam: LoadPackageParam) {
                             XposedBridge.log("\t Modified to: ${LocationUtil.altitude}")
                         }
                     }
-
                 })
 
             XposedHelpers.findAndHookMethod(

@@ -113,7 +113,7 @@ class PreferencesRepository(private val context: Context) {
 
     // Is Playing
     fun getIsPlayingFlow(): Flow<Boolean> {
-        return getPreferenceFlow(PreferenceKeys.IS_PLAYING, DEFAULT_USE_ACCURACY)
+        return getPreferenceFlow(PreferenceKeys.IS_PLAYING, false)
     }
     
     suspend fun saveIsPlaying(isPlaying: Boolean) {
