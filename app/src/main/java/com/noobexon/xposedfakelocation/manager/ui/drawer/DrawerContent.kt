@@ -112,16 +112,6 @@ fun DrawerContent(
             )
 
             DrawerItem(
-                icon = LineAwesomeIcons.MapMarkerAltSolid,
-                label = stringResource(R.string.screen_templates),
-                onClick = {
-                    navController.navigate(Screen.Templates.route)
-                    onCloseDrawer()
-                },
-                isSelected = navController.currentDestination?.route == Screen.Templates.route
-            )
-
-            DrawerItem(
                 icon = Icons.Default.Settings,
                 label = stringResource(R.string.screen_settings),
                 onClick = {

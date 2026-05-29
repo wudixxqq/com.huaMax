@@ -40,10 +40,10 @@ class SystemServicesHooks(val appLpparam: LoadPackageParam) {
 
         hookAll(serviceClass, "getLastLocation", object : XC_MethodHook() {
             override fun afterHookedMethod(param: MethodHookParam) {
-                val packageName = spoofPackageFromArgs(param.args) ?: return
+                if (!shouldSpoofArgs(param.args)) return
 
                 val original = param.result as? Location
-                param.result = LocationUtil.createFakeLocation(original, packageName = packageName)
+                param.result = LocationUtil.createFakeLocation(original)
                 XposedBridge.log("$tag Replaced getLastLocation result.")
             }
         })
@@ -89,6 +89,7 @@ class SystemServicesHooks(val appLpparam: LoadPackageParam) {
                 val locationsField = findField(locationResult.javaClass, "mLocations") ?: return
                 val originalLocations = locationsField.get(locationResult) as? List<*> ?: return
                 val original = originalLocations.firstOrNull() as? Location
+                val fakeLocation = LocationUtil.createFakeLocation(original)
                 val originalRegistrations = ArrayMap<Any?, Any?>()
                 val passthroughRegistrations = ArrayMap<Any?, Any?>()
 
@@ -97,8 +98,7 @@ class SystemServicesHooks(val appLpparam: LoadPackageParam) {
                     val packageNames = collectPackageNames(value)
                     val spoofedPackage = packageNames.firstOrNull(LocationUtil::shouldSpoofPackage)
                     if (spoofedPackage != null) {
-                        val packageFakeLocation = LocationUtil.createFakeLocation(original, packageName = spoofedPackage)
-                        locationsField.set(locationResult, arrayListOf(packageFakeLocation))
+                        locationsField.set(locationResult, arrayListOf(fakeLocation))
                         deliverLocationToRegistration(value, locationResult)
                         XposedBridge.log("$tag Delivered spoofed provider location to $spoofedPackage.")
                     } else {
@@ -135,8 +135,8 @@ class SystemServicesHooks(val appLpparam: LoadPackageParam) {
 
         hookAll(miuiClass, "getBlurryLocation", object : XC_MethodHook() {
             override fun afterHookedMethod(param: MethodHookParam) {
-                val packageName = spoofPackageFromArgs(param.args) ?: return
-                param.result = replaceLocationLikeResult(param.result, param.method as? Method, packageName)
+                if (!shouldSpoofArgs(param.args)) return
+                param.result = replaceLocationLikeResult(param.result, param.method as? Method)
                 XposedBridge.log("$tag Replaced MIUI blurry location result.")
             }
         })
@@ -175,14 +175,13 @@ class SystemServicesHooks(val appLpparam: LoadPackageParam) {
 
         hookAll(receiverClass, "callLocationChangedLocked", object : XC_MethodHook() {
             override fun beforeHookedMethod(param: MethodHookParam) {
-                val packageName = collectPackageNames(param.thisObject)
-                    .firstOrNull(LocationUtil::shouldSpoofPackage) ?: return
+                if (collectPackageNames(param.thisObject).none(LocationUtil::shouldSpoofPackage)) return
 
                 val locationArgIndex = param.args.indexOfFirst { it is Location }
                 if (locationArgIndex == -1) return
 
                 val original = param.args[locationArgIndex] as? Location
-                param.args[locationArgIndex] = LocationUtil.createFakeLocation(original, packageName = packageName)
+                param.args[locationArgIndex] = LocationUtil.createFakeLocation(original)
                 XposedBridge.log("$tag Replaced Receiver.callLocationChangedLocked argument.")
             }
         })
@@ -352,14 +351,10 @@ class SystemServicesHooks(val appLpparam: LoadPackageParam) {
     }
 
     private fun shouldSpoofArgs(args: Array<Any?>?): Boolean {
-        return spoofPackageFromArgs(args) != null
-    }
-
-    private fun spoofPackageFromArgs(args: Array<Any?>?): String? {
         return args?.asSequence()
             ?.flatMap { collectPackageNames(it).asSequence() }
             ?.distinct()
-            ?.firstOrNull(LocationUtil::shouldSpoofPackage)
+            ?.any(LocationUtil::shouldSpoofPackage) == true
     }
 
     private fun collectPackageNames(value: Any?): Set<String> {
@@ -484,9 +479,9 @@ class SystemServicesHooks(val appLpparam: LoadPackageParam) {
         return value != null && "." in value && !value.startsWith("android.location.")
     }
 
-    private fun replaceLocationLikeResult(result: Any?, method: Method?, packageName: String): Any? {
+    private fun replaceLocationLikeResult(result: Any?, method: Method?): Any? {
         if (result is Location) {
-            return LocationUtil.createFakeLocation(result, packageName = packageName)
+            return LocationUtil.createFakeLocation(result)
         }
 
         if (result != null) {
@@ -494,13 +489,13 @@ class SystemServicesHooks(val appLpparam: LoadPackageParam) {
             val originalLocations = locationsField?.get(result) as? List<*>
             val original = originalLocations?.firstOrNull() as? Location
             if (locationsField != null) {
-                locationsField.set(result, arrayListOf(LocationUtil.createFakeLocation(original, packageName = packageName)))
+                locationsField.set(result, arrayListOf(LocationUtil.createFakeLocation(original)))
                 return result
             }
 
             if (result is List<*>) {
                 val original = result.firstOrNull() as? Location
-                return listOf(LocationUtil.createFakeLocation(original, packageName = packageName))
+                return listOf(LocationUtil.createFakeLocation(original))
             }
 
             runCatching {
@@ -509,7 +504,7 @@ class SystemServicesHooks(val appLpparam: LoadPackageParam) {
                 val size = sizeMethod?.invoke(result) as? Int ?: return@runCatching
                 if (size > 0) {
                     val originalLocation = getMethod?.invoke(result, 0) as? Location ?: return@runCatching
-                    val fakeLocation = LocationUtil.createFakeLocation(originalLocation, packageName = packageName)
+                    val fakeLocation = LocationUtil.createFakeLocation(originalLocation)
                     originalLocation.latitude = fakeLocation.latitude
                     originalLocation.longitude = fakeLocation.longitude
                     originalLocation.altitude = fakeLocation.altitude
@@ -524,7 +519,7 @@ class SystemServicesHooks(val appLpparam: LoadPackageParam) {
         }
 
         return if (method?.returnType?.let { Location::class.java.isAssignableFrom(it) } == true) {
-            LocationUtil.createFakeLocation(provider = LocationManager.FUSED_PROVIDER, packageName = packageName)
+            LocationUtil.createFakeLocation(provider = LocationManager.FUSED_PROVIDER)
         } else {
             null
         }

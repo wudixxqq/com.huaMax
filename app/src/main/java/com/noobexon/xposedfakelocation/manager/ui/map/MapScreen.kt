@@ -50,10 +50,8 @@ import com.noobexon.xposedfakelocation.R
 import com.noobexon.xposedfakelocation.data.model.FavoriteLocation
 import com.noobexon.xposedfakelocation.manager.ui.drawer.DrawerContent
 import com.noobexon.xposedfakelocation.manager.ui.map.components.AddToFavoritesDialog
-import com.noobexon.xposedfakelocation.manager.ui.map.components.AddToTemplateDialog
 import com.noobexon.xposedfakelocation.manager.ui.map.components.GoToPointDialog
 import com.noobexon.xposedfakelocation.manager.ui.map.components.MapViewContainer
-import com.noobexon.xposedfakelocation.manager.ui.map.components.UpdateTemplateLocationDialog
 import com.noobexon.xposedfakelocation.manager.ui.navigation.Screen
 import kotlinx.coroutines.launch
 
@@ -69,8 +67,6 @@ fun MapScreen(
     val isFabClickable = uiState.isFabClickable
     val showGoToPointDialog = uiState.goToPointDialogState == DialogState.Visible
     val showAddToFavoritesDialog = uiState.addToFavoritesDialogState == DialogState.Visible
-    val showAddToTemplateDialog = uiState.addToTemplateDialogState == DialogState.Visible
-    val showUpdateTemplateLocationDialog = uiState.updateTemplateLocationDialogState == DialogState.Visible
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var showOptionsMenu by remember { mutableStateOf(false) }
@@ -145,34 +141,6 @@ fun MapScreen(
                                     showOptionsMenu = false
                                     mapViewModel.showAddToFavoritesDialog()
                                 }
-                            )
-                            DropdownMenuItem(
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Default.BookmarkAdd,
-                                        contentDescription = stringResource(R.string.map_add_to_templates)
-                                    )
-                                },
-                                text = { Text(stringResource(R.string.map_add_to_templates)) },
-                                onClick = {
-                                    showOptionsMenu = false
-                                    mapViewModel.showAddToTemplateDialog()
-                                },
-                                enabled = isFabClickable
-                            )
-                            DropdownMenuItem(
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Default.EditLocationAlt,
-                                        contentDescription = stringResource(R.string.map_update_template_location)
-                                    )
-                                },
-                                text = { Text(stringResource(R.string.map_update_template_location)) },
-                                onClick = {
-                                    showOptionsMenu = false
-                                    mapViewModel.showUpdateTemplateLocationDialog()
-                                },
-                                enabled = isFabClickable && uiState.templates.isNotEmpty()
                             )
                             DropdownMenuItem(
                                 leadingIcon = {
@@ -284,29 +252,6 @@ fun MapScreen(
                     val favorite = FavoriteLocation(name, latitude, longitude)
                     mapViewModel.addFavoriteLocation(favorite)
                     mapViewModel.hideAddToFavoritesDialog()
-                }
-            )
-        }
-
-        if (showAddToTemplateDialog) {
-            AddToTemplateDialog(
-                mapViewModel = mapViewModel,
-                onDismissRequest = { mapViewModel.hideAddToTemplateDialog() },
-                onAddTemplate = { template ->
-                    mapViewModel.addTemplate(template)
-                    mapViewModel.hideAddToTemplateDialog()
-                }
-            )
-        }
-
-        if (showUpdateTemplateLocationDialog) {
-            UpdateTemplateLocationDialog(
-                templates = uiState.templates,
-                marker = uiState.lastClickedLocation,
-                onDismissRequest = { mapViewModel.hideUpdateTemplateLocationDialog() },
-                onUpdateTemplate = { template, latitude, longitude ->
-                    mapViewModel.updateTemplateLocation(template, latitude, longitude)
-                    mapViewModel.hideUpdateTemplateLocationDialog()
                 }
             )
         }

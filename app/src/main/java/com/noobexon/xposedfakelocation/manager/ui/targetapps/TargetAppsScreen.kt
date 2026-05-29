@@ -18,7 +18,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -49,7 +48,6 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.noobexon.xposedfakelocation.R
-import com.noobexon.xposedfakelocation.manager.ui.targetapps.components.ProfileEditorDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,19 +56,6 @@ fun TargetAppsScreen(
     viewModel: TargetAppsViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val editingProfile = uiState.editingPackageName?.let { uiState.profiles[it] }
-
-    if (editingProfile != null) {
-        ProfileEditorDialog(
-            profile = editingProfile,
-            appLabel = uiState.apps.firstOrNull { it.packageName == editingProfile.packageName }?.label
-                ?: editingProfile.packageName,
-            locationTemplates = uiState.locationTemplates,
-            templates = uiState.templates,
-            onDismiss = viewModel::dismissEditor,
-            onSave = viewModel::saveProfile
-        )
-    }
 
     Scaffold(
         topBar = {
@@ -131,8 +116,7 @@ fun TargetAppsScreen(
                     items(uiState.filteredApps, key = { it.packageName }) { app ->
                         TargetAppRow(
                             app = app,
-                            onToggle = { viewModel.toggleApp(app.packageName) },
-                            onEdit = { viewModel.editApp(app.packageName) }
+                            onToggle = { viewModel.toggleApp(app.packageName) }
                         )
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                     }
@@ -145,8 +129,7 @@ fun TargetAppsScreen(
 @Composable
 private fun TargetAppRow(
     app: TargetAppItem,
-    onToggle: () -> Unit,
-    onEdit: () -> Unit
+    onToggle: () -> Unit
 ) {
     Surface(
         modifier = Modifier
@@ -186,13 +169,6 @@ private fun TargetAppRow(
                 checked = app.isSelected,
                 onCheckedChange = { onToggle() }
             )
-
-            IconButton(onClick = onEdit) {
-                Icon(
-                    Icons.Default.Edit,
-                    contentDescription = stringResource(R.string.cd_edit_app_profile, app.label)
-                )
-            }
         }
     }
 }

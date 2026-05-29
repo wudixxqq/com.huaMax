@@ -66,7 +66,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.noobexon.xposedfakelocation.R
-import com.noobexon.xposedfakelocation.data.model.GpsNoiseLevel
 import com.noobexon.xposedfakelocation.manager.control.ControlReceiver
 import com.noobexon.xposedfakelocation.manager.localization.LanguageOption
 import com.noobexon.xposedfakelocation.manager.localization.LocaleController
@@ -84,7 +83,6 @@ private object SettingDefinitions {
     @Composable
     fun getCategories(): Map<String, List<String>> {
         val randomizeTitle = stringResource(R.string.setting_randomize_title)
-        val gpsNoiseTitle = stringResource(R.string.setting_gps_noise_title)
         val horizontalAccuracyTitle = stringResource(R.string.setting_horizontal_accuracy_title)
         val verticalAccuracyTitle = stringResource(R.string.setting_vertical_accuracy_title)
         val altitudeTitle = stringResource(R.string.setting_altitude_title)
@@ -96,7 +94,6 @@ private object SettingDefinitions {
         return mapOf(
             stringResource(R.string.category_location) to listOf(
                 randomizeTitle,
-                gpsNoiseTitle,
                 horizontalAccuracyTitle,
                 verticalAccuracyTitle
             ),
@@ -233,7 +230,6 @@ fun SettingsScreen(
     var showRebootDialog by remember { mutableStateOf(false) }
     val allSettings = SettingDefinitions.getSettings(settingsViewModel)
     val categories = SettingDefinitions.getCategories()
-    val gpsNoiseTitle = stringResource(R.string.setting_gps_noise_title)
     val selectedLanguage = LanguageOption.fromTag(settingsViewModel.languageTag.collectAsState().value)
 
     if (showRebootDialog) {
@@ -382,20 +378,12 @@ fun SettingsScreen(
                         Column(modifier = Modifier.padding(Dimensions.SPACING_SMALL)) {
                             settingsInCategory.forEach { settingTitle ->
                                 val setting = allSettings.find { it.title == settingTitle }
-                                if (settingTitle == gpsNoiseTitle) {
-                                    GpsNoiseSetting(
-                                        useGpsNoise = settingsViewModel.useGpsNoise.collectAsState().value,
-                                        gpsNoiseLevel = settingsViewModel.gpsNoiseLevel.collectAsState().value,
-                                        onUseGpsNoiseChange = settingsViewModel::setUseGpsNoise,
-                                        onGpsNoiseLevelChange = settingsViewModel::setGpsNoiseLevel
-                                    )
-                                } else {
-                                    setting?.let {
+                                setting?.let {
                                         when (setting) {
                                             is DoubleSettingData -> DoubleSettingComposable(setting)
                                             is FloatSettingData -> FloatSettingComposable(setting)
                                         }
-                                    }
+
                                 }
                                 if (settingTitle != settingsInCategory.last()) {
                                     HorizontalDivider(
@@ -471,50 +459,6 @@ private fun LanguageSettingItem(
             }
         }
     }
-}
-
-@Composable
-private fun GpsNoiseSetting(
-    useGpsNoise: Boolean,
-    gpsNoiseLevel: GpsNoiseLevel,
-    onUseGpsNoiseChange: (Boolean) -> Unit,
-    onGpsNoiseLevelChange: (GpsNoiseLevel) -> Unit
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        BooleanSettingItem(
-            title = stringResource(R.string.setting_gps_noise_title),
-            description = stringResource(R.string.setting_gps_noise_description),
-            checked = useGpsNoise,
-            onCheckedChange = onUseGpsNoiseChange
-        )
-        if (useGpsNoise) {
-            GpsNoiseLevel.entries.forEach { level ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = Dimensions.SPACING_SMALL),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    RadioButton(
-                        selected = gpsNoiseLevel == level,
-                        onClick = { onGpsNoiseLevelChange(level) }
-                    )
-                    Text(gpsNoiseLevelLabel(level))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun gpsNoiseLevelLabel(level: GpsNoiseLevel): String {
-    return stringResource(
-        when (level) {
-            GpsNoiseLevel.LOW -> R.string.gps_noise_low
-            GpsNoiseLevel.NORMAL -> R.string.gps_noise_normal
-            GpsNoiseLevel.HIGH -> R.string.gps_noise_high
-        }
-    )
 }
 
 private fun setControlReceiverEnabled(context: android.content.Context, enabled: Boolean) {

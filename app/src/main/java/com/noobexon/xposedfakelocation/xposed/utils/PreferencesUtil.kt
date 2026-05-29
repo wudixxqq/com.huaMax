@@ -4,12 +4,7 @@ package com.noobexon.xposedfakelocation.xposed.utils
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.noobexon.xposedfakelocation.data.*
-import com.noobexon.xposedfakelocation.data.model.AppLocationProfile
-import com.noobexon.xposedfakelocation.data.model.GpsNoiseLevel
 import com.noobexon.xposedfakelocation.data.model.LastClickedLocation
-import com.noobexon.xposedfakelocation.data.model.LocationTemplate
-import com.noobexon.xposedfakelocation.data.model.OverrideState
-import com.noobexon.xposedfakelocation.data.model.toAppLocationProfile
 import de.robv.android.xposed.XSharedPreferences
 import de.robv.android.xposed.XposedBridge
 
@@ -56,16 +51,6 @@ object PreferencesUtil {
 
     fun getRandomizeRadius(): Double? {
         return getPreference<Double>(KEY_RANDOMIZE_RADIUS)
-    }
-
-    fun getUseGpsNoise(): Boolean? {
-        return getPreference<Boolean>(KEY_USE_GPS_NOISE)
-    }
-
-    fun getGpsNoiseLevel(): GpsNoiseLevel {
-        preferences.reload()
-        val raw = preferences.getString(KEY_GPS_NOISE_LEVEL, DEFAULT_GPS_NOISE_LEVEL) ?: DEFAULT_GPS_NOISE_LEVEL
-        return GpsNoiseLevel.fromPreferenceValue(raw)
     }
 
     fun getUseVerticalAccuracy(): Boolean? {
@@ -138,193 +123,13 @@ object PreferencesUtil {
         }
     }
 
-    fun getAppLocationProfiles(): Map<String, AppLocationProfile> {
-        preferences.reload()
-        val json = preferences.getString(KEY_APP_LOCATION_PROFILES, null) ?: return emptyMap()
-        return try {
-            val type = object : TypeToken<List<AppLocationProfile>>() {}.type
-            Gson().fromJson<List<AppLocationProfile>>(json, type)
-                .filter { it.packageName.isNotBlank() }
-                .map(::normalizeAppLocationProfile)
-                .associateBy { it.packageName }
-        } catch (e: Exception) {
-            XposedBridge.log("$TAG Error parsing app location profiles JSON: ${e.message}")
-            emptyMap()
-        }
-    }
-
-    fun getAppLocationProfile(packageName: String?): AppLocationProfile? {
-        if (packageName.isNullOrBlank() || packageName == MANAGER_APP_PACKAGE_NAME) return null
-        val profile = getAppLocationProfiles()[packageName]?.takeIf { it.enabled } ?: return null
-
-        val globalProfile = createGlobalProfile(packageName) ?: return null
-        val sourceProfile = when {
-            profile.useCustomLocation -> globalProfile.copy(
-                useCustomLocation = true,
-                latitude = profile.latitude,
-                longitude = profile.longitude
-            )
-            profile.templateId.isNullOrBlank() -> globalProfile
-            else -> {
-                val template = getLocationTemplates().firstOrNull { it.id == profile.templateId }
-                if (template == null) {
-                    globalProfile
-                } else {
-                    globalProfile.copy(
-                        templateId = template.id,
-                        latitude = template.latitude,
-                        longitude = template.longitude
-                    ).withAdvancedSettingsFrom(template.toAppLocationProfile(packageName = packageName, enabled = true))
-                }
-            }
-        }
-
-        return if (profile.useCustomAdvancedSettings) {
-            sourceProfile.withAdvancedSettingsFrom(profile)
-        } else {
-            sourceProfile
-        }
-    }
-
-    private fun AppLocationProfile.withAdvancedSettingsFrom(override: AppLocationProfile): AppLocationProfile {
-        val randomizeOverride = override.randomizeOverride ?: OverrideState.INHERIT
-        val accuracyOverride = override.accuracyOverride ?: OverrideState.INHERIT
-        val altitudeOverride = override.altitudeOverride ?: OverrideState.INHERIT
-        val verticalAccuracyOverride = override.verticalAccuracyOverride ?: OverrideState.INHERIT
-        val meanSeaLevelOverride = override.meanSeaLevelOverride ?: OverrideState.INHERIT
-        val meanSeaLevelAccuracyOverride = override.meanSeaLevelAccuracyOverride ?: OverrideState.INHERIT
-        val speedOverride = override.speedOverride ?: OverrideState.INHERIT
-        val speedAccuracyOverride = override.speedAccuracyOverride ?: OverrideState.INHERIT
-        val gpsNoiseOverride = override.gpsNoiseOverride ?: OverrideState.INHERIT
-
-        return copy(
-            useCustomAdvancedSettings = true,
-            randomizeOverride = randomizeOverride,
-            useRandomize = resolveEnabled(useRandomize, randomizeOverride, override.useRandomize),
-            randomizeRadius = if (randomizeOverride == OverrideState.ENABLED) override.randomizeRadius else randomizeRadius,
-            accuracyOverride = accuracyOverride,
-            useAccuracy = resolveEnabled(useAccuracy, accuracyOverride, override.useAccuracy),
-            accuracy = if (accuracyOverride == OverrideState.ENABLED) override.accuracy else accuracy,
-            altitudeOverride = altitudeOverride,
-            useAltitude = resolveEnabled(useAltitude, altitudeOverride, override.useAltitude),
-            altitude = if (altitudeOverride == OverrideState.ENABLED) override.altitude else altitude,
-            verticalAccuracyOverride = verticalAccuracyOverride,
-            useVerticalAccuracy = resolveEnabled(useVerticalAccuracy, verticalAccuracyOverride, override.useVerticalAccuracy),
-            verticalAccuracy = if (verticalAccuracyOverride == OverrideState.ENABLED) override.verticalAccuracy else verticalAccuracy,
-            meanSeaLevelOverride = meanSeaLevelOverride,
-            useMeanSeaLevel = resolveEnabled(useMeanSeaLevel, meanSeaLevelOverride, override.useMeanSeaLevel),
-            meanSeaLevel = if (meanSeaLevelOverride == OverrideState.ENABLED) override.meanSeaLevel else meanSeaLevel,
-            meanSeaLevelAccuracyOverride = meanSeaLevelAccuracyOverride,
-            useMeanSeaLevelAccuracy = resolveEnabled(useMeanSeaLevelAccuracy, meanSeaLevelAccuracyOverride, override.useMeanSeaLevelAccuracy),
-            meanSeaLevelAccuracy = if (meanSeaLevelAccuracyOverride == OverrideState.ENABLED) override.meanSeaLevelAccuracy else meanSeaLevelAccuracy,
-            speedOverride = speedOverride,
-            useSpeed = resolveEnabled(useSpeed, speedOverride, override.useSpeed),
-            speed = if (speedOverride == OverrideState.ENABLED) override.speed else speed,
-            speedAccuracyOverride = speedAccuracyOverride,
-            useSpeedAccuracy = resolveEnabled(useSpeedAccuracy, speedAccuracyOverride, override.useSpeedAccuracy),
-            speedAccuracy = if (speedAccuracyOverride == OverrideState.ENABLED) override.speedAccuracy else speedAccuracy,
-            gpsNoiseOverride = gpsNoiseOverride,
-            useGpsNoise = resolveEnabled(useGpsNoise, gpsNoiseOverride, override.useGpsNoise),
-            gpsNoiseLevel = if (gpsNoiseOverride == OverrideState.ENABLED) {
-                override.gpsNoiseLevel ?: GpsNoiseLevel.NORMAL
-            } else {
-                gpsNoiseLevel
-            }
-        )
-    }
-
-    private fun resolveEnabled(base: Boolean, overrideState: OverrideState?, overrideValue: Boolean): Boolean {
-        return when (overrideState ?: OverrideState.INHERIT) {
-            OverrideState.INHERIT -> base
-            OverrideState.ENABLED -> overrideValue
-            OverrideState.DISABLED -> false
-        }
-    }
-
-    private fun createGlobalProfile(
-        packageName: String,
-        latitudeOverride: Double? = null,
-        longitudeOverride: Double? = null
-    ): AppLocationProfile? {
-        val location = getLastClickedLocation() ?: return null
-        return AppLocationProfile(
-            packageName = packageName,
-            templateId = null,
-            useCustomLocation = latitudeOverride != null && longitudeOverride != null,
-            useCustomAdvancedSettings = false,
-            latitude = latitudeOverride ?: location.latitude,
-            longitude = longitudeOverride ?: location.longitude,
-            enabled = true,
-            useRandomize = getUseRandomize() == true,
-            randomizeRadius = getRandomizeRadius() ?: DEFAULT_RANDOMIZE_RADIUS,
-            useAccuracy = getUseAccuracy() == true,
-            accuracy = getAccuracy() ?: DEFAULT_ACCURACY,
-            useAltitude = getUseAltitude() == true,
-            altitude = getAltitude() ?: DEFAULT_ALTITUDE,
-            useVerticalAccuracy = getUseVerticalAccuracy() == true,
-            verticalAccuracy = getVerticalAccuracy() ?: DEFAULT_VERTICAL_ACCURACY,
-            useMeanSeaLevel = getUseMeanSeaLevel() == true,
-            meanSeaLevel = getMeanSeaLevel() ?: DEFAULT_MEAN_SEA_LEVEL,
-            useMeanSeaLevelAccuracy = getUseMeanSeaLevelAccuracy() == true,
-            meanSeaLevelAccuracy = getMeanSeaLevelAccuracy() ?: DEFAULT_MEAN_SEA_LEVEL_ACCURACY,
-            useSpeed = getUseSpeed() == true,
-            speed = getSpeed() ?: DEFAULT_SPEED,
-            useSpeedAccuracy = getUseSpeedAccuracy() == true,
-            speedAccuracy = getSpeedAccuracy() ?: DEFAULT_SPEED_ACCURACY,
-            useGpsNoise = getUseGpsNoise() == true,
-            gpsNoiseLevel = getGpsNoiseLevel()
-        )
-    }
-
-    fun getLocationTemplates(): List<LocationTemplate> {
-        preferences.reload()
-        val json = preferences.getString(KEY_LOCATION_TEMPLATES, null) ?: return emptyList()
-        return try {
-            val type = object : TypeToken<List<LocationTemplate>>() {}.type
-            Gson().fromJson<List<LocationTemplate>>(json, type)
-                .filter { it.id.isNotBlank() && it.name.isNotBlank() }
-                .map(::normalizeLocationTemplate)
-        } catch (e: Exception) {
-            XposedBridge.log("$TAG Error parsing location templates JSON: ${e.message}")
-            emptyList()
-        }
-    }
-
-    private fun normalizeAppLocationProfile(profile: AppLocationProfile): AppLocationProfile {
-        return profile.copy(
-            randomizeOverride = profile.randomizeOverride ?: OverrideState.INHERIT,
-            accuracyOverride = profile.accuracyOverride ?: OverrideState.INHERIT,
-            altitudeOverride = profile.altitudeOverride ?: OverrideState.INHERIT,
-            verticalAccuracyOverride = profile.verticalAccuracyOverride ?: OverrideState.INHERIT,
-            meanSeaLevelOverride = profile.meanSeaLevelOverride ?: OverrideState.INHERIT,
-            meanSeaLevelAccuracyOverride = profile.meanSeaLevelAccuracyOverride ?: OverrideState.INHERIT,
-            speedOverride = profile.speedOverride ?: OverrideState.INHERIT,
-            speedAccuracyOverride = profile.speedAccuracyOverride ?: OverrideState.INHERIT,
-            gpsNoiseOverride = profile.gpsNoiseOverride ?: OverrideState.INHERIT,
-            gpsNoiseLevel = profile.gpsNoiseLevel ?: GpsNoiseLevel.NORMAL
-        )
-    }
-
-    private fun normalizeLocationTemplate(template: LocationTemplate): LocationTemplate {
-        return template.copy(
-            randomizeOverride = template.randomizeOverride ?: OverrideState.INHERIT,
-            accuracyOverride = template.accuracyOverride ?: OverrideState.INHERIT,
-            altitudeOverride = template.altitudeOverride ?: OverrideState.INHERIT,
-            verticalAccuracyOverride = template.verticalAccuracyOverride ?: OverrideState.INHERIT,
-            meanSeaLevelOverride = template.meanSeaLevelOverride ?: OverrideState.INHERIT,
-            meanSeaLevelAccuracyOverride = template.meanSeaLevelAccuracyOverride ?: OverrideState.INHERIT,
-            speedOverride = template.speedOverride ?: OverrideState.INHERIT,
-            speedAccuracyOverride = template.speedAccuracyOverride ?: OverrideState.INHERIT,
-            gpsNoiseOverride = template.gpsNoiseOverride ?: OverrideState.INHERIT,
-            gpsNoiseLevel = template.gpsNoiseLevel ?: GpsNoiseLevel.NORMAL
-        )
-    }
-
     fun shouldSpoofPackage(packageName: String?): Boolean {
         if (packageName.isNullOrBlank() || packageName == MANAGER_APP_PACKAGE_NAME) return false
-        if (getIsPlaying() != true) return false
+        if (getIsPlaying() != true || getLastClickedLocation() == null) return false
 
-        return getAppLocationProfile(packageName) != null
+        val targetApps = getTargetApps()
+        return targetApps.contains(packageName) ||
+                (targetApps.isNotEmpty() && locationProxyPackages.contains(packageName))
     }
 
     private inline fun <reified T> getPreference(key: String): T? {

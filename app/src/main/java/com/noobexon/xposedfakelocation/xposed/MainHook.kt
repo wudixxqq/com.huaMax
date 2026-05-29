@@ -64,9 +64,7 @@ class MainHook : IXposedHookLoadPackage {
                 override fun afterHookedMethod(param: MethodHookParam) {
                     context = (param.args[0] as Application).applicationContext.also {
                         XposedBridge.log("$tag Target App's context has been acquired (${lpparam.packageName}).")
-                        if (!PreferencesUtil.getHideFakeLocationToast() &&
-                            LocationUtil.shouldSpoofPackage(lpparam.packageName)
-                        ) {
+                        if (!PreferencesUtil.getHideFakeLocationToast()) {
                             Toast.makeText(
                                 it,
                                 "Fake Location Is Active!",
