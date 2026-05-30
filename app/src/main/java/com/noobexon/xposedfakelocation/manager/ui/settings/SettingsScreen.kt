@@ -36,6 +36,8 @@ import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
@@ -231,7 +233,24 @@ fun SettingsScreen(
     val categories = SettingDefinitions.getCategories()
     val selectedLanguage = LanguageOption.fromTag(settingsViewModel.languageTag.collectAsState().value)
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    // null = hidden; true = hooks were enabled; false = hooks were disabled
+    var restartDialogEnabled by remember { mutableStateOf<Boolean?>(null) }
+
+    LaunchedEffect(Unit) {
+        settingsViewModel.systemHooksEvents.collect { event ->
+            when (event) {
+                is SystemHooksEvent.RestartRequired -> restartDialogEnabled = event.enabled
+                is SystemHooksEvent.ModuleNotActive ->
+                    snackbarHostState.showSnackbar(context.getString(R.string.system_hooks_module_inactive))
+                is SystemHooksEvent.ScopeRequestFailed ->
+                    snackbarHostState.showSnackbar(context.getString(R.string.system_hooks_scope_failed, event.message))
+            }
+        }
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.screen_settings)) },
@@ -329,6 +348,25 @@ fun SettingsScreen(
                 }
                 Spacer(modifier = Modifier.height(Dimensions.SPACING_MEDIUM))
 
+                CategoryHeader(stringResource(R.string.category_system_hooks))
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = Dimensions.SPACING_SMALL),
+                    shape = RoundedCornerShape(Dimensions.CARD_CORNER_RADIUS),
+                    elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.CARD_ELEVATION)
+                ) {
+                    Column(modifier = Modifier.padding(Dimensions.SPACING_SMALL)) {
+                        BooleanSettingItem(
+                            title = stringResource(R.string.setting_system_hooks_title),
+                            description = stringResource(R.string.setting_system_hooks_description),
+                            checked = settingsViewModel.enableSystemHooks.collectAsState().value,
+                            onCheckedChange = settingsViewModel::setEnableSystemHooks
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(Dimensions.SPACING_MEDIUM))
+
                 categories.forEach { (category, settingsInCategory) ->
                     CategoryHeader(category)
 
@@ -363,6 +401,26 @@ fun SettingsScreen(
                 }
 
                 Spacer(modifier = Modifier.height(Dimensions.SPACING_LARGE))
+            }
+
+            restartDialogEnabled?.let { enabled ->
+                AlertDialog(
+                    onDismissRequest = { restartDialogEnabled = null },
+                    title = { Text(stringResource(R.string.dialog_restart_required_title)) },
+                    text = {
+                        Text(
+                            stringResource(
+                                if (enabled) R.string.dialog_restart_required_enable_message
+                                else R.string.dialog_restart_required_disable_message
+                            )
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { restartDialogEnabled = null }) {
+                            Text(stringResource(R.string.action_ok))
+                        }
+                    }
+                )
             }
         }
     }

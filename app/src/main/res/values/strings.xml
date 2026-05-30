@@ -48,6 +48,7 @@
     <string name="category_language">Language</string>
     <string name="category_notifications">Notifications</string>
     <string name="category_external_control">External Control</string>
+    <string name="category_system_hooks">System Hooks</string>
     <string name="category_location">Location</string>
     <string name="category_altitude">Altitude</string>
     <string name="category_movement">Movement</string>
@@ -58,6 +59,13 @@
     <string name="setting_hide_toast_description">Suppresses the toast shown when the module activates in a target app</string>
     <string name="setting_external_broadcast_title">Allow external broadcast control</string>
     <string name="setting_external_broadcast_description">Off (default): blocks the BroadcastReceiver — no app or ADB shell can start/stop spoofing or set coordinates via intents. On: any installed app and \'adb shell am broadcast\' can drive the module (no permission check; coordinates are clamped to valid lat/lon ranges). Only enable this if you trust every app on the device or are running on a controlled (e.g., automation) device. See docs/EXTERNAL_CONTROL.md for actions and lock-down options.</string>
+    <string name="setting_system_hooks_title">Enable system-level hooks</string>
+    <string name="setting_system_hooks_description">Adds the Android system framework (android) and the phone process (com.android.phone) to the module scope so location can be spoofed at the system level. A device restart is required for changes to take effect.</string>
+    <string name="dialog_restart_required_title">Restart Required</string>
+    <string name="dialog_restart_required_enable_message">System-level hooks were added to the module scope. Please restart your device for them to take effect.</string>
+    <string name="dialog_restart_required_disable_message">System-level hooks were removed from the module scope. Please restart your device to fully undo them.</string>
+    <string name="system_hooks_module_inactive">Module is not active. Enable XposedFakeLocation in your Xposed manager first.</string>
+    <string name="system_hooks_scope_failed">Couldn\'t update scope: %1$s</string>
     <string name="setting_more_info">More information about %1$s</string>
     <string name="setting_disable">Disable %1$s</string>
     <string name="setting_enable">Enable %1$s</string>

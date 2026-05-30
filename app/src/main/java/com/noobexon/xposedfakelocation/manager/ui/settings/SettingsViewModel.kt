@@ -6,8 +6,20 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.noobexon.xposedfakelocation.data.*
 import com.noobexon.xposedfakelocation.data.repository.PreferencesRepository
+import com.noobexon.xposedfakelocation.manager.App
+import io.github.libxposed.service.XposedService
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+/** One-shot messages surfaced to the settings UI. */
+sealed interface SystemHooksEvent {
+    /** The scope change succeeded; the user must reboot for it to take effect (or be undone). */
+    data class RestartRequired(val enabled: Boolean) : SystemHooksEvent
+    data object ModuleNotActive : SystemHooksEvent
+    data class ScopeRequestFailed(val message: String) : SystemHooksEvent
+}
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
     private val preferencesRepository = PreferencesRepository(application)
@@ -275,6 +287,14 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     )
     val enableBroadcastControl: StateFlow<Boolean> = _enableBroadcastControlPreference.state
 
+    // Preference for System-Level Hooks (state mirrors the persisted pref; the switch only flips
+    // once the scope change actually succeeds).
+    val enableSystemHooks: StateFlow<Boolean> = preferencesRepository.getEnableSystemHooksFlow()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, DEFAULT_ENABLE_SYSTEM_HOOKS)
+
+    private val _systemHooksEvents = MutableSharedFlow<SystemHooksEvent>(extraBufferCapacity = 1)
+    val systemHooksEvents: SharedFlow<SystemHooksEvent> = _systemHooksEvents.asSharedFlow()
+
     // Preference for Language
     private val _languageTagPreference = StringPreference(
         DEFAULT_LANGUAGE_TAG,
@@ -304,4 +324,48 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setHideFakeLocationToast(value: Boolean) = _hideFakeLocationToastPreference.setValue(value)
     fun setEnableBroadcastControl(value: Boolean) = _enableBroadcastControlPreference.setValue(value)
     fun setLanguageTag(value: String) = _languageTagPreference.setValue(value)
+
+    /**
+     * Adds (or removes) the system framework packages to the module scope. The persisted toggle is
+     * only updated once the scope change succeeds, after which the user is prompted to reboot.
+     */
+    fun setEnableSystemHooks(enabled: Boolean) {
+        val service = App.service
+        if (service == null) {
+            _systemHooksEvents.tryEmit(SystemHooksEvent.ModuleNotActive)
+            return
+        }
+
+        if (enabled) {
+            val callback = object : XposedService.OnScopeEventListener {
+                override fun onScopeRequestApproved(approved: List<String>) {
+                    viewModelScope.launch {
+                        preferencesRepository.saveEnableSystemHooks(true)
+                        _systemHooksEvents.tryEmit(SystemHooksEvent.RestartRequired(true))
+                    }
+                }
+
+                override fun onScopeRequestFailed(message: String) {
+                    _systemHooksEvents.tryEmit(SystemHooksEvent.ScopeRequestFailed(message))
+                }
+            }
+            viewModelScope.launch {
+                try {
+                    withContext(Dispatchers.IO) { service.requestScope(SYSTEM_HOOK_PACKAGES, callback) }
+                } catch (e: XposedService.ServiceException) {
+                    _systemHooksEvents.tryEmit(SystemHooksEvent.ScopeRequestFailed(e.message ?: e.toString()))
+                }
+            }
+        } else {
+            viewModelScope.launch {
+                try {
+                    withContext(Dispatchers.IO) { service.removeScope(SYSTEM_HOOK_PACKAGES) }
+                    preferencesRepository.saveEnableSystemHooks(false)
+                    _systemHooksEvents.tryEmit(SystemHooksEvent.RestartRequired(false))
+                } catch (e: XposedService.ServiceException) {
+                    _systemHooksEvents.tryEmit(SystemHooksEvent.ScopeRequestFailed(e.message ?: e.toString()))
+                }
+            }
+        }
+    }
 }

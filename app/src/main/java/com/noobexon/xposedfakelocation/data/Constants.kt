@@ -44,6 +44,11 @@ const val KEY_HIDE_FAKE_LOCATION_TOAST = "hide_fake_location_toast"
 const val KEY_ENABLE_BROADCAST_CONTROL = "enable_broadcast_control"
 const val KEY_LANGUAGE_TAG = "language_tag"
 
+const val KEY_ENABLE_SYSTEM_HOOKS = "enable_system_hooks"
+
+// Packages added/removed from module scope when system-level hooks are toggled.
+val SYSTEM_HOOK_PACKAGES = listOf("android", "com.android.phone")
+
  // DEFAULT VALUES
 const val DEFAULT_USE_ACCURACY = false
 const val DEFAULT_ACCURACY = 0.0
@@ -73,6 +78,8 @@ const val DEFAULT_HIDE_FAKE_LOCATION_TOAST = false
 
 const val DEFAULT_ENABLE_BROADCAST_CONTROL = false
 const val DEFAULT_LANGUAGE_TAG = ""
+
+const val DEFAULT_ENABLE_SYSTEM_HOOKS = false
 
 // MATH & PHYS
 const val PI = 3.14159265359
