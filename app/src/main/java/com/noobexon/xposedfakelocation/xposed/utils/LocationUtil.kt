@@ -33,7 +33,7 @@ object LocationUtil {
         logger?.invoke(priority, TAG, message)
     }
 
-    private const val DEBUG: Boolean = true
+    private const val DEBUG: Boolean = false
 
     private val random: Random = Random()
 

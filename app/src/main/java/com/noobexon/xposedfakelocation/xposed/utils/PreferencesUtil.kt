@@ -19,8 +19,6 @@ object PreferencesUtil {
     // so a listener that isn't referenced anywhere gets GC'd and silently stops firing.
     private val changeListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             log("Remote pref changed: $key")
-            // If you keep an explicit cache, refresh the affected key here.
-            // TODO: verify this and implement
     }
 
     fun init(prefs: SharedPreferences) {
@@ -110,32 +108,8 @@ object PreferencesUtil {
         return getPreference<Boolean>(KEY_HIDE_FAKE_LOCATION_TOAST)
     }
 
-    // TODO: integrate after im done with new api integration
-//    fun getLanguageTag(): String {
-//        return preferences.getString(KEY_LANGUAGE_TAG, DEFAULT_LANGUAGE_TAG) ?: DEFAULT_LANGUAGE_TAG
-//    }
-//
-//    fun getUseInAppTargetApps(): Boolean {
-//        return if (preferences.contains(KEY_USE_INAPP_TARGET_APPS)) {
-//            preferences.getBoolean(KEY_USE_INAPP_TARGET_APPS, DEFAULT_USE_INAPP_TARGET_APPS)
-//        } else {
-//            DEFAULT_USE_INAPP_TARGET_APPS
-//        }
-//    }
-//
-//    fun getTargetApps(): Set<String> {
-//        val json = preferences.getString(KEY_TARGET_APPS, null) ?: return emptySet()
-//        return try {
-//            val type = object : TypeToken<List<String>>() {}.type
-//            Gson().fromJson<List<String>>(json, type).toSet()
-//        } catch (e: Exception) {
-//            log("$TAG Error parsing target apps JSON: ${e.message}")
-//            emptySet()
-//        }
-//    }
-
     private inline fun <reified T> getPreference(key: String): T? {
-        val preferences = preferences ?: return null // TODO: add logs here to know that its null
+        val preferences = preferences ?: return null
         return when (T::class) {
             Double::class -> {
                 val defaultValue = when (key) {

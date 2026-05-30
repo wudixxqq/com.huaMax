@@ -25,8 +25,12 @@ class LocationApiHooks(private val module: XposedInterface, private val classLoa
                 LocationUtil.updateLocation()
                 module.log(Log.INFO, tag, "Leaving method getLatitude()")
                 module.log(Log.INFO, tag, "\t Original latitude: $original")
-                module.log(Log.INFO, tag, "\t Modified to: ${LocationUtil.latitude}")
-                LocationUtil.latitude
+                if (PreferencesUtil.getIsPlaying() == true) {
+                    module.log(Log.INFO, tag, "\t Modified to: ${LocationUtil.latitude}")
+                    LocationUtil.latitude
+                } else {
+                    original
+                }
             }
 
             module.hook(locationClass.getDeclaredMethod("getLongitude")).intercept { chain ->
@@ -34,8 +38,12 @@ class LocationApiHooks(private val module: XposedInterface, private val classLoa
                 LocationUtil.updateLocation()
                 module.log(Log.INFO, tag, "Leaving method getLongitude()")
                 module.log(Log.INFO, tag, "\t Original longitude: $original")
-                module.log(Log.INFO, tag, "\t Modified to: ${LocationUtil.longitude}")
-                LocationUtil.longitude
+                if (PreferencesUtil.getIsPlaying() == true) {
+                    module.log(Log.INFO, tag, "\t Modified to: ${LocationUtil.longitude}")
+                    LocationUtil.longitude
+                } else {
+                    original
+                }
             }
 
             module.hook(locationClass.getDeclaredMethod("getAccuracy")).intercept { chain ->
@@ -43,7 +51,7 @@ class LocationApiHooks(private val module: XposedInterface, private val classLoa
                 LocationUtil.updateLocation()
                 module.log(Log.INFO, tag, "Leaving method getAccuracy()")
                 module.log(Log.INFO, tag, "\t Original accuracy: $original")
-                if (PreferencesUtil.getUseAccuracy() == true) {
+                if (PreferencesUtil.getIsPlaying() == true && PreferencesUtil.getUseAccuracy() == true) {
                     module.log(Log.INFO, tag, "\t Modified to: ${LocationUtil.accuracy}")
                     LocationUtil.accuracy
                 } else {
@@ -56,7 +64,7 @@ class LocationApiHooks(private val module: XposedInterface, private val classLoa
                 LocationUtil.updateLocation()
                 module.log(Log.INFO, tag, "Leaving method getAltitude()")
                 module.log(Log.INFO, tag, "\t Original altitude: $original")
-                if (PreferencesUtil.getUseAltitude() == true) {
+                if (PreferencesUtil.getIsPlaying() == true && PreferencesUtil.getUseAltitude() == true) {
                     module.log(Log.INFO, tag, "\t Modified to: ${LocationUtil.altitude}")
                     LocationUtil.altitude
                 } else {
@@ -69,7 +77,7 @@ class LocationApiHooks(private val module: XposedInterface, private val classLoa
                 LocationUtil.updateLocation()
                 module.log(Log.INFO, tag, "Leaving method getVerticalAccuracyMeters()")
                 module.log(Log.INFO, tag, "\tOriginal vertical accuracy: $original")
-                if (PreferencesUtil.getUseVerticalAccuracy() == true) {
+                if (PreferencesUtil.getIsPlaying() == true && PreferencesUtil.getUseVerticalAccuracy() == true) {
                     module.log(Log.INFO, tag, "\tModified to: ${LocationUtil.verticalAccuracy}")
                     LocationUtil.verticalAccuracy
                 } else {
@@ -82,7 +90,7 @@ class LocationApiHooks(private val module: XposedInterface, private val classLoa
                 LocationUtil.updateLocation()
                 module.log(Log.INFO, tag, "Leaving method getSpeed()")
                 module.log(Log.INFO, tag, "\tOriginal speed: $original")
-                if (PreferencesUtil.getUseSpeed() == true) {
+                if (PreferencesUtil.getIsPlaying() == true && PreferencesUtil.getUseSpeed() == true) {
                     module.log(Log.INFO, tag, "\tModified to: ${LocationUtil.speed}")
                     LocationUtil.speed
                 } else {
@@ -95,7 +103,7 @@ class LocationApiHooks(private val module: XposedInterface, private val classLoa
                 LocationUtil.updateLocation()
                 module.log(Log.INFO, tag, "Leaving method getSpeedAccuracyMetersPerSecond()")
                 module.log(Log.INFO, tag, "\tOriginal speed accuracy: $original")
-                if (PreferencesUtil.getUseSpeedAccuracy() == true) {
+                if (PreferencesUtil.getIsPlaying() == true && PreferencesUtil.getUseSpeedAccuracy() == true) {
                     module.log(Log.INFO, tag, "\tModified to: ${LocationUtil.speedAccuracy}")
                     LocationUtil.speedAccuracy
                 } else {
@@ -109,7 +117,7 @@ class LocationApiHooks(private val module: XposedInterface, private val classLoa
                     LocationUtil.updateLocation()
                     module.log(Log.INFO, tag, "Leaving method getMslAltitudeMeters()")
                     module.log(Log.INFO, tag, "\tOriginal MSL altitude: $original")
-                    if (PreferencesUtil.getUseMeanSeaLevel() == true) {
+                    if (PreferencesUtil.getIsPlaying() == true && PreferencesUtil.getUseMeanSeaLevel() == true) {
                         module.log(Log.INFO, tag, "\tModified to: ${LocationUtil.meanSeaLevel}")
                         LocationUtil.meanSeaLevel
                     } else {
@@ -122,7 +130,7 @@ class LocationApiHooks(private val module: XposedInterface, private val classLoa
                     LocationUtil.updateLocation()
                     module.log(Log.INFO, tag, "Leaving method getMslAltitudeAccuracyMeters()")
                     module.log(Log.INFO, tag, "\tOriginal MSL altitude accuracy: $original")
-                    if (PreferencesUtil.getUseMeanSeaLevelAccuracy() == true) {
+                    if (PreferencesUtil.getIsPlaying() == true && PreferencesUtil.getUseMeanSeaLevelAccuracy() == true) {
                         module.log(Log.INFO, tag, "\tModified to: ${LocationUtil.meanSeaLevelAccuracy}")
                         LocationUtil.meanSeaLevelAccuracy
                     } else {
@@ -149,9 +157,13 @@ class LocationApiHooks(private val module: XposedInterface, private val classLoa
                 module.log(Log.INFO, tag, "\t Original location: $original")
                 val provider = chain.getArg(0) as String
                 module.log(Log.INFO, tag, "\t Requested data from: $provider")
-                val fakeLocation = LocationUtil.createFakeLocation(provider = provider)
-                module.log(Log.INFO, tag, "\t Modified location: $fakeLocation")
-                fakeLocation
+                if (PreferencesUtil.getIsPlaying() == true) {
+                    val fakeLocation = LocationUtil.createFakeLocation(provider = provider)
+                    module.log(Log.INFO, tag, "\t Modified location: $fakeLocation")
+                    fakeLocation
+                } else {
+                    original
+                }
             }
 
         } catch (e: Exception) {

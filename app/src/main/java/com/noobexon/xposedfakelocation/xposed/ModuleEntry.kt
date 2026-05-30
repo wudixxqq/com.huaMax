@@ -43,9 +43,6 @@ class ModuleEntry : XposedModule() {
 
         PreferencesUtil.init(getRemotePreferences(REMOTE_PREFS_GROUP))
 
-        // If not playing or null, do not proceed with hooking
-        if (PreferencesUtil.getIsPlaying() != true) return
-
         initHookingLogic(param)
 
 
