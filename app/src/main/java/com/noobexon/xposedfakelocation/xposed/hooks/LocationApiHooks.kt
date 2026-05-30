@@ -2,14 +2,14 @@
 package com.noobexon.xposedfakelocation.xposed.hooks
 
 import android.location.Location
+import com.noobexon.xposedfakelocation.xposed.ModuleEntry
 import com.noobexon.xposedfakelocation.xposed.utils.LocationUtil
 import com.noobexon.xposedfakelocation.xposed.utils.PreferencesUtil
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
-import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
 
-class LocationApiHooks(val appLpparam: LoadPackageParam) {
+class LocationApiHooks(val appLpparam: ModuleEntry, classLoader: ClassLoader) {
     private val tag = "[LocationApiHooks]"
 
     fun initHooks() {
