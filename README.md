@@ -95,6 +95,9 @@ If you want to build by yourself:
    - **Select target apps from inside `XposedFakeLocation`** (the `Target Apps` screen). Your selection updates the module's LSPosed scope automatically — there's no need to manage scope manually in LSPosed.
    - **(Optional) System-level hooks:** to spoof the Android system framework (`android`) and phone process (`com.android.phone`) as well, open `Settings` inside `XposedFakeLocation` and enable **`Enable system-level hooks`**. This adds those packages to the scope; **reboot** your device for the change to take effect (and reboot again after turning it off).
 
+> [!NOTE]
+> From now on, all you need to do in `LSPosed` is **enable the module** — the entire scope is managed from within the `XposedFakeLocation` app itself. Adding/removing target apps and toggling system-level hooks updates the LSPosed scope automatically, so you should not edit the module's scope manually in `LSPosed`.
+
 ---
 
 ## **Usage**
