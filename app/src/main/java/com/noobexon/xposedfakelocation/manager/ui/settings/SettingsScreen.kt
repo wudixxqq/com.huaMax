@@ -36,6 +36,8 @@ import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
@@ -66,7 +68,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.noobexon.xposedfakelocation.R
-import com.noobexon.xposedfakelocation.data.model.GpsNoiseLevel
 import com.noobexon.xposedfakelocation.manager.control.ControlReceiver
 import com.noobexon.xposedfakelocation.manager.localization.LanguageOption
 import com.noobexon.xposedfakelocation.manager.localization.LocaleController
@@ -84,7 +85,6 @@ private object SettingDefinitions {
     @Composable
     fun getCategories(): Map<String, List<String>> {
         val randomizeTitle = stringResource(R.string.setting_randomize_title)
-        val gpsNoiseTitle = stringResource(R.string.setting_gps_noise_title)
         val horizontalAccuracyTitle = stringResource(R.string.setting_horizontal_accuracy_title)
         val verticalAccuracyTitle = stringResource(R.string.setting_vertical_accuracy_title)
         val altitudeTitle = stringResource(R.string.setting_altitude_title)
@@ -96,7 +96,6 @@ private object SettingDefinitions {
         return mapOf(
             stringResource(R.string.category_location) to listOf(
                 randomizeTitle,
-                gpsNoiseTitle,
                 horizontalAccuracyTitle,
                 verticalAccuracyTitle
             ),
@@ -230,26 +229,28 @@ fun SettingsScreen(
     val focusManager = LocalFocusManager.current
     val context = LocalContext.current
     val scrollState = rememberScrollState()
-    var showRebootDialog by remember { mutableStateOf(false) }
     val allSettings = SettingDefinitions.getSettings(settingsViewModel)
     val categories = SettingDefinitions.getCategories()
-    val gpsNoiseTitle = stringResource(R.string.setting_gps_noise_title)
     val selectedLanguage = LanguageOption.fromTag(settingsViewModel.languageTag.collectAsState().value)
 
-    if (showRebootDialog) {
-        AlertDialog(
-            onDismissRequest = { showRebootDialog = false },
-            title = { Text(stringResource(R.string.dialog_reboot_required_title)) },
-            text = { Text(stringResource(R.string.dialog_reboot_required_message)) },
-            confirmButton = {
-                TextButton(onClick = { showRebootDialog = false }) {
-                    Text(stringResource(R.string.action_ok))
-                }
+    val snackbarHostState = remember { SnackbarHostState() }
+    // null = hidden; true = hooks were enabled; false = hooks were disabled
+    var restartDialogEnabled by remember { mutableStateOf<Boolean?>(null) }
+
+    LaunchedEffect(Unit) {
+        settingsViewModel.systemHooksEvents.collect { event ->
+            when (event) {
+                is SystemHooksEvent.RestartRequired -> restartDialogEnabled = event.enabled
+                is SystemHooksEvent.ModuleNotActive ->
+                    snackbarHostState.showSnackbar(context.getString(R.string.system_hooks_module_inactive))
+                is SystemHooksEvent.ScopeRequestFailed ->
+                    snackbarHostState.showSnackbar(context.getString(R.string.system_hooks_scope_failed, event.message))
             }
-        )
+        }
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.screen_settings)) },
@@ -325,28 +326,6 @@ fun SettingsScreen(
                 }
                 Spacer(modifier = Modifier.height(Dimensions.SPACING_MEDIUM))
 
-                CategoryHeader(stringResource(R.string.category_target_apps))
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = Dimensions.SPACING_SMALL),
-                    shape = RoundedCornerShape(Dimensions.CARD_CORNER_RADIUS),
-                    elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.CARD_ELEVATION)
-                ) {
-                    Column(modifier = Modifier.padding(Dimensions.SPACING_SMALL)) {
-                        BooleanSettingItem(
-                            title = stringResource(R.string.setting_use_inapp_target_apps_title),
-                            description = stringResource(R.string.setting_use_inapp_target_apps_description),
-                            checked = settingsViewModel.useInAppTargetApps.collectAsState().value,
-                            onCheckedChange = { newValue ->
-                                settingsViewModel.setUseInAppTargetApps(newValue)
-                                if (newValue) showRebootDialog = true
-                            }
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(Dimensions.SPACING_MEDIUM))
-
                 CategoryHeader(stringResource(R.string.category_external_control))
                 Card(
                     modifier = Modifier
@@ -369,6 +348,25 @@ fun SettingsScreen(
                 }
                 Spacer(modifier = Modifier.height(Dimensions.SPACING_MEDIUM))
 
+                CategoryHeader(stringResource(R.string.category_system_hooks))
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = Dimensions.SPACING_SMALL),
+                    shape = RoundedCornerShape(Dimensions.CARD_CORNER_RADIUS),
+                    elevation = CardDefaults.cardElevation(defaultElevation = Dimensions.CARD_ELEVATION)
+                ) {
+                    Column(modifier = Modifier.padding(Dimensions.SPACING_SMALL)) {
+                        BooleanSettingItem(
+                            title = stringResource(R.string.setting_system_hooks_title),
+                            description = stringResource(R.string.setting_system_hooks_description),
+                            checked = settingsViewModel.enableSystemHooks.collectAsState().value,
+                            onCheckedChange = settingsViewModel::setEnableSystemHooks
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(Dimensions.SPACING_MEDIUM))
+
                 categories.forEach { (category, settingsInCategory) ->
                     CategoryHeader(category)
 
@@ -382,20 +380,12 @@ fun SettingsScreen(
                         Column(modifier = Modifier.padding(Dimensions.SPACING_SMALL)) {
                             settingsInCategory.forEach { settingTitle ->
                                 val setting = allSettings.find { it.title == settingTitle }
-                                if (settingTitle == gpsNoiseTitle) {
-                                    GpsNoiseSetting(
-                                        useGpsNoise = settingsViewModel.useGpsNoise.collectAsState().value,
-                                        gpsNoiseLevel = settingsViewModel.gpsNoiseLevel.collectAsState().value,
-                                        onUseGpsNoiseChange = settingsViewModel::setUseGpsNoise,
-                                        onGpsNoiseLevelChange = settingsViewModel::setGpsNoiseLevel
-                                    )
-                                } else {
-                                    setting?.let {
+                                setting?.let {
                                         when (setting) {
                                             is DoubleSettingData -> DoubleSettingComposable(setting)
                                             is FloatSettingData -> FloatSettingComposable(setting)
                                         }
-                                    }
+
                                 }
                                 if (settingTitle != settingsInCategory.last()) {
                                     HorizontalDivider(
@@ -411,6 +401,26 @@ fun SettingsScreen(
                 }
 
                 Spacer(modifier = Modifier.height(Dimensions.SPACING_LARGE))
+            }
+
+            restartDialogEnabled?.let { enabled ->
+                AlertDialog(
+                    onDismissRequest = { restartDialogEnabled = null },
+                    title = { Text(stringResource(R.string.dialog_restart_required_title)) },
+                    text = {
+                        Text(
+                            stringResource(
+                                if (enabled) R.string.dialog_restart_required_enable_message
+                                else R.string.dialog_restart_required_disable_message
+                            )
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { restartDialogEnabled = null }) {
+                            Text(stringResource(R.string.action_ok))
+                        }
+                    }
+                )
             }
         }
     }
@@ -471,50 +481,6 @@ private fun LanguageSettingItem(
             }
         }
     }
-}
-
-@Composable
-private fun GpsNoiseSetting(
-    useGpsNoise: Boolean,
-    gpsNoiseLevel: GpsNoiseLevel,
-    onUseGpsNoiseChange: (Boolean) -> Unit,
-    onGpsNoiseLevelChange: (GpsNoiseLevel) -> Unit
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        BooleanSettingItem(
-            title = stringResource(R.string.setting_gps_noise_title),
-            description = stringResource(R.string.setting_gps_noise_description),
-            checked = useGpsNoise,
-            onCheckedChange = onUseGpsNoiseChange
-        )
-        if (useGpsNoise) {
-            GpsNoiseLevel.entries.forEach { level ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = Dimensions.SPACING_SMALL),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    RadioButton(
-                        selected = gpsNoiseLevel == level,
-                        onClick = { onGpsNoiseLevelChange(level) }
-                    )
-                    Text(gpsNoiseLevelLabel(level))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun gpsNoiseLevelLabel(level: GpsNoiseLevel): String {
-    return stringResource(
-        when (level) {
-            GpsNoiseLevel.LOW -> R.string.gps_noise_low
-            GpsNoiseLevel.NORMAL -> R.string.gps_noise_normal
-            GpsNoiseLevel.HIGH -> R.string.gps_noise_high
-        }
-    )
 }
 
 private fun setControlReceiverEnabled(context: android.content.Context, enabled: Boolean) {

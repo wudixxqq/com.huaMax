@@ -7,20 +7,23 @@ import android.net.wifi.WifiInfo
 import android.os.Build
 import android.telephony.CellInfo
 import android.util.ArrayMap
+import android.util.Log
 import com.noobexon.xposedfakelocation.xposed.utils.LocationUtil
+import com.noobexon.xposedfakelocation.xposed.utils.PreferencesUtil
 import dalvik.system.PathClassLoader
-import de.robv.android.xposed.XC_MethodHook
-import de.robv.android.xposed.XposedBridge
-import de.robv.android.xposed.XposedHelpers
-import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
+import io.github.libxposed.api.XposedInterface
+import io.github.libxposed.api.XposedInterface.Chain
+import io.github.libxposed.api.XposedInterface.Hooker
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 
-class SystemServicesHooks(val appLpparam: LoadPackageParam) {
+class SystemServicesHooks(
+    private val module: XposedInterface,
+    private val classLoader: ClassLoader
+) {
     private val tag = "[SystemServicesHooks]"
 
     fun initHooks() {
-        val classLoader = appLpparam.classLoader
         hookLastLocation(classLoader)
         hookCurrentLocation(classLoader)
         hookLocationDispatch(classLoader)
@@ -28,7 +31,7 @@ class SystemServicesHooks(val appLpparam: LoadPackageParam) {
         hookWifiServices(classLoader)
         hookGnssRegistration(classLoader)
         hookGeofence(classLoader)
-        XposedBridge.log("$tag Instantiated hooks successfully")
+        module.log(Log.INFO, tag, "Instantiated hooks successfully")
     }
 
     private fun hookLastLocation(classLoader: ClassLoader) {
@@ -38,15 +41,16 @@ class SystemServicesHooks(val appLpparam: LoadPackageParam) {
             "com.android.server.LocationManagerService"
         ) ?: return
 
-        hookAll(serviceClass, "getLastLocation", object : XC_MethodHook() {
-            override fun afterHookedMethod(param: MethodHookParam) {
-                val packageName = spoofPackageFromArgs(param.args) ?: return
-
-                val original = param.result as? Location
-                param.result = LocationUtil.createFakeLocation(original, packageName = packageName)
-                XposedBridge.log("$tag Replaced getLastLocation result.")
+        hookAll(serviceClass, "getLastLocation") { chain ->
+            val result = chain.proceed()
+            if (shouldSpoofArgs(chain.args)) {
+                val original = result as? Location
+                module.log(Log.INFO, tag, "Replaced getLastLocation result.")
+                LocationUtil.createFakeLocation(original)
+            } else {
+                result
             }
-        })
+        }
     }
 
     private fun hookCurrentLocation(classLoader: ClassLoader) {
@@ -56,14 +60,14 @@ class SystemServicesHooks(val appLpparam: LoadPackageParam) {
             "com.android.server.LocationManagerService"
         ) ?: return
 
-        hookAll(serviceClass, "getCurrentLocation", object : XC_MethodHook() {
-            override fun beforeHookedMethod(param: MethodHookParam) {
-                if (!shouldSpoofArgs(param.args)) return
-
-                param.result = defaultReturnValue(param.method as? Method)
-                XposedBridge.log("$tag Blocked getCurrentLocation request for spoofed target.")
+        hookAll(serviceClass, "getCurrentLocation") { chain ->
+            if (shouldSpoofArgs(chain.args)) {
+                module.log(Log.INFO, tag, "Blocked getCurrentLocation request for spoofed target.")
+                defaultReturnValue(chain.executable as? Method)
+            } else {
+                chain.proceed()
             }
-        })
+        }
     }
 
     private fun hookLocationDispatch(classLoader: ClassLoader) {
@@ -79,51 +83,52 @@ class SystemServicesHooks(val appLpparam: LoadPackageParam) {
             "com.android.server.location.provider.LocationProviderManager"
         ) ?: return
 
-        hookAll(providerClass, "onReportLocation", object : XC_MethodHook() {
-            override fun beforeHookedMethod(param: MethodHookParam) {
-                if (!LocationUtil.isSpoofingEnabled()) return
-                val locationResult = param.args.firstOrNull() ?: return
-                val registrationsField = findField(providerClass, "mRegistrations") ?: return
-                val registrations = registrationsField.get(param.thisObject) as? Map<*, *> ?: return
+        hookAll(providerClass, "onReportLocation") { chain ->
+            interceptOnReportLocation(providerClass, chain)
+        }
+    }
 
-                val locationsField = findField(locationResult.javaClass, "mLocations") ?: return
-                val originalLocations = locationsField.get(locationResult) as? List<*> ?: return
-                val original = originalLocations.firstOrNull() as? Location
-                val originalRegistrations = ArrayMap<Any?, Any?>()
-                val passthroughRegistrations = ArrayMap<Any?, Any?>()
+    private fun interceptOnReportLocation(providerClass: Class<*>, chain: Chain): Any? {
+        if (PreferencesUtil.getIsPlaying() != true) return chain.proceed()
+        val locationResult = chain.args.firstOrNull() ?: return chain.proceed()
+        val registrationsField = findField(providerClass, "mRegistrations") ?: return chain.proceed()
+        val registrations = registrationsField.get(chain.thisObject) as? Map<*, *> ?: return chain.proceed()
 
-                registrations.forEach { (key, value) ->
-                    originalRegistrations[key] = value
-                    val packageNames = collectPackageNames(value)
-                    val spoofedPackage = packageNames.firstOrNull(LocationUtil::shouldSpoofPackage)
-                    if (spoofedPackage != null) {
-                        val packageFakeLocation = LocationUtil.createFakeLocation(original, packageName = spoofedPackage)
-                        locationsField.set(locationResult, arrayListOf(packageFakeLocation))
-                        deliverLocationToRegistration(value, locationResult)
-                        XposedBridge.log("$tag Delivered spoofed provider location to $spoofedPackage.")
-                    } else {
-                        passthroughRegistrations[key] = value
-                    }
-                }
+        val locationsField = findField(locationResult.javaClass, "mLocations") ?: return chain.proceed()
+        val originalLocations = locationsField.get(locationResult) as? List<*> ?: return chain.proceed()
+        val original = originalLocations.firstOrNull() as? Location
+        val fakeLocation = LocationUtil.createFakeLocation(original)
+        val originalRegistrations = ArrayMap<Any?, Any?>()
+        val passthroughRegistrations = ArrayMap<Any?, Any?>()
 
-                locationsField.set(locationResult, ArrayList(originalLocations))
-                param.setObjectExtra("target_apps_original_registrations", originalRegistrations)
-                registrationsField.set(param.thisObject, passthroughRegistrations)
+        registrations.forEach { (key, value) ->
+            originalRegistrations[key] = value
+            val packageNames = collectPackageNames(value)
+            val spoofedPackage = packageNames.firstOrNull(LocationUtil::shouldSpoofPackage)
+            if (spoofedPackage != null) {
+                // Deliver a fake location directly to this target registration and exclude it from
+                // the passthrough set so the real location is never pushed to it below.
+                locationsField.set(locationResult, arrayListOf(fakeLocation))
+                deliverLocationToRegistration(value, locationResult)
+                module.log(Log.INFO, tag, "Delivered spoofed provider location to $spoofedPackage.")
+            } else {
+                passthroughRegistrations[key] = value
             }
+        }
 
-            override fun afterHookedMethod(param: MethodHookParam) {
-                val originalRegistrations = param.getObjectExtra("target_apps_original_registrations") as? Map<*, *>
-                    ?: return
-                val registrationsField = findField(providerClass, "mRegistrations") ?: return
-                registrationsField.set(param.thisObject, originalRegistrations)
-            }
-        })
+        locationsField.set(locationResult, ArrayList(originalLocations))
+        registrationsField.set(chain.thisObject, passthroughRegistrations)
+        return try {
+            chain.proceed()
+        } finally {
+            registrationsField.set(chain.thisObject, originalRegistrations)
+        }
     }
 
     private fun hookMiuiLocationServices(classLoader: ClassLoader) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
         if (!isXiaomiFamilyDevice()) {
-            XposedBridge.log("$tag Skipping MIUI location hooks on non-Xiaomi device.")
+            module.log(Log.INFO, tag, "Skipping MIUI location hooks on non-Xiaomi device.")
             return
         }
 
@@ -133,37 +138,44 @@ class SystemServicesHooks(val appLpparam: LoadPackageParam) {
             "com.android.server.location.MiuiBlurLocationManager"
         ) ?: return
 
-        hookAll(miuiClass, "getBlurryLocation", object : XC_MethodHook() {
-            override fun afterHookedMethod(param: MethodHookParam) {
-                val packageName = spoofPackageFromArgs(param.args) ?: return
-                param.result = replaceLocationLikeResult(param.result, param.method as? Method, packageName)
-                XposedBridge.log("$tag Replaced MIUI blurry location result.")
+        hookAll(miuiClass, "getBlurryLocation") { chain ->
+            val result = chain.proceed()
+            if (shouldSpoofArgs(chain.args)) {
+                module.log(Log.INFO, tag, "Replaced MIUI blurry location result.")
+                replaceLocationLikeResult(result, chain.executable as? Method)
+            } else {
+                result
             }
-        })
+        }
 
-        hookAll(miuiClass, "getBlurryCellLocation", object : XC_MethodHook() {
-            override fun afterHookedMethod(param: MethodHookParam) {
-                if (!shouldSpoofArgs(param.args)) return
-                param.result = null
-                XposedBridge.log("$tag Cleared MIUI blurry cell location result.")
+        hookAll(miuiClass, "getBlurryCellLocation") { chain ->
+            val result = chain.proceed()
+            if (shouldSpoofArgs(chain.args)) {
+                module.log(Log.INFO, tag, "Cleared MIUI blurry cell location result.")
+                null
+            } else {
+                result
             }
-        })
+        }
 
-        hookAll(miuiClass, "getBlurryCellInfos", object : XC_MethodHook() {
-            override fun afterHookedMethod(param: MethodHookParam) {
-                if (!shouldSpoofArgs(param.args)) return
-                param.result = emptyList<CellInfo>()
-                XposedBridge.log("$tag Cleared MIUI blurry cell info result.")
+        hookAll(miuiClass, "getBlurryCellInfos") { chain ->
+            val result = chain.proceed()
+            if (shouldSpoofArgs(chain.args)) {
+                module.log(Log.INFO, tag, "Cleared MIUI blurry cell info result.")
+                emptyList<CellInfo>()
+            } else {
+                result
             }
-        })
+        }
 
-        hookAll(miuiClass, "handleGpsLocationChangedLocked", object : XC_MethodHook() {
-            override fun beforeHookedMethod(param: MethodHookParam) {
-                if (!shouldSpoofArgs(param.args)) return
-                param.result = defaultReturnValue(param.method as? Method)
-                XposedBridge.log("$tag Blocked MIUI GPS location refresh while spoofing.")
+        hookAll(miuiClass, "handleGpsLocationChangedLocked") { chain ->
+            if (shouldSpoofArgs(chain.args)) {
+                module.log(Log.INFO, tag, "Blocked MIUI GPS location refresh while spoofing.")
+                defaultReturnValue(chain.executable as? Method)
+            } else {
+                chain.proceed()
             }
-        })
+        }
     }
 
     private fun hookReceiverCallbacks(classLoader: ClassLoader) {
@@ -173,19 +185,25 @@ class SystemServicesHooks(val appLpparam: LoadPackageParam) {
             "com.android.server.LocationManagerService\$Receiver"
         ) ?: return
 
-        hookAll(receiverClass, "callLocationChangedLocked", object : XC_MethodHook() {
-            override fun beforeHookedMethod(param: MethodHookParam) {
-                val packageName = collectPackageNames(param.thisObject)
-                    .firstOrNull(LocationUtil::shouldSpoofPackage) ?: return
+        hookAll(receiverClass, "callLocationChangedLocked") { chain ->
+            interceptCallLocationChanged(chain)
+        }
+    }
 
-                val locationArgIndex = param.args.indexOfFirst { it is Location }
-                if (locationArgIndex == -1) return
+    private fun interceptCallLocationChanged(chain: Chain): Any? {
+        if (PreferencesUtil.getIsPlaying() != true) return chain.proceed()
+        // The Receiver itself carries the caller package, so attribute by inspecting `thisObject`.
+        if (collectPackageNames(chain.thisObject).none(LocationUtil::shouldSpoofPackage)) return chain.proceed()
 
-                val original = param.args[locationArgIndex] as? Location
-                param.args[locationArgIndex] = LocationUtil.createFakeLocation(original, packageName = packageName)
-                XposedBridge.log("$tag Replaced Receiver.callLocationChangedLocked argument.")
-            }
-        })
+        val args = chain.args
+        val locationArgIndex = args.indexOfFirst { it is Location }
+        if (locationArgIndex == -1) return chain.proceed()
+
+        val original = args[locationArgIndex] as? Location
+        val newArgs = args.toTypedArray()
+        newArgs[locationArgIndex] = LocationUtil.createFakeLocation(original)
+        module.log(Log.INFO, tag, "Replaced Receiver.callLocationChangedLocked argument.")
+        return chain.proceed(newArgs)
     }
 
     private fun hookGnssRegistration(classLoader: ClassLoader) {
@@ -209,13 +227,14 @@ class SystemServicesHooks(val appLpparam: LoadPackageParam) {
 
         serviceClasses.forEach { serviceClass ->
             methodsToBlock.forEach { methodName ->
-                hookAll(serviceClass, methodName, object : XC_MethodHook() {
-                    override fun beforeHookedMethod(param: MethodHookParam) {
-                        if (!shouldSpoofArgs(param.args)) return
-                        param.result = defaultReturnValue(param.method as? Method)
-                        XposedBridge.log("$tag Blocked $methodName while spoofing is enabled.")
+                hookAll(serviceClass, methodName) { chain ->
+                    if (shouldSpoofArgs(chain.args)) {
+                        module.log(Log.INFO, tag, "Blocked $methodName while spoofing is enabled.")
+                        defaultReturnValue(chain.executable as? Method)
+                    } else {
+                        chain.proceed()
                     }
-                })
+                }
             }
         }
     }
@@ -226,45 +245,52 @@ class SystemServicesHooks(val appLpparam: LoadPackageParam) {
             "com.android.server.SystemServiceManager"
         ) ?: return
 
-        hookAll(systemServiceManagerClass, "loadClassFromLoader", object : XC_MethodHook() {
-            override fun afterHookedMethod(param: MethodHookParam) {
-                val serviceName = param.args.getOrNull(0) as? String ?: return
-                if (serviceName != "com.android.server.wifi.WifiService") return
-
-                val serviceClassLoader = param.args.getOrNull(1) as? PathClassLoader ?: return
-                val wifiServiceClass = findClass(
-                    serviceClassLoader,
-                    "com.android.server.wifi.WifiServiceImpl"
-                ) ?: return
-
-                hookWifiServiceImpl(wifiServiceClass)
+        hookAll(systemServiceManagerClass, "loadClassFromLoader") { chain ->
+            val result = chain.proceed()
+            val serviceName = chain.args.getOrNull(0) as? String
+            if (serviceName == "com.android.server.wifi.WifiService") {
+                val serviceClassLoader = chain.args.getOrNull(1) as? PathClassLoader
+                if (serviceClassLoader != null) {
+                    val wifiServiceClass = findClass(
+                        serviceClassLoader,
+                        "com.android.server.wifi.WifiServiceImpl"
+                    )
+                    if (wifiServiceClass != null) {
+                        hookWifiServiceImpl(wifiServiceClass)
+                    }
+                }
             }
-        })
+            result
+        }
     }
 
     private fun hookWifiServiceImpl(wifiServiceClass: Class<*>) {
-        hookAll(wifiServiceClass, "getScanResults", object : XC_MethodHook() {
-            override fun afterHookedMethod(param: MethodHookParam) {
-                if (!shouldSpoofArgs(param.args)) return
-                param.result = emptyList<Any>()
-                XposedBridge.log("$tag Cleared Wi-Fi scan results while spoofing.")
+        hookAll(wifiServiceClass, "getScanResults") { chain ->
+            val result = chain.proceed()
+            if (shouldSpoofArgs(chain.args)) {
+                module.log(Log.INFO, tag, "Cleared Wi-Fi scan results while spoofing.")
+                emptyList<Any>()
+            } else {
+                result
             }
-        })
+        }
 
-        hookAll(wifiServiceClass, "getConnectionInfo", object : XC_MethodHook() {
-            override fun afterHookedMethod(param: MethodHookParam) {
-                if (!shouldSpoofArgs(param.args)) return
+        hookAll(wifiServiceClass, "getConnectionInfo") { chain ->
+            val result = chain.proceed()
+            if (shouldSpoofArgs(chain.args)) {
                 // TODO: These Wi-Fi identity values are hardcoded as a temporary fallback.
                 // Expose them as user-configurable settings in the manager app.
-                param.result = WifiInfo.Builder()
+                module.log(Log.INFO, tag, "Replaced Wi-Fi connection info while spoofing.")
+                WifiInfo.Builder()
                     .setBssid("02:00:00:00:00:00")
                     .setSsid("AndroidAP".toByteArray())
                     .setRssi(-60)
                     .setNetworkId(0)
                     .build()
-                XposedBridge.log("$tag Replaced Wi-Fi connection info while spoofing.")
+            } else {
+                result
             }
-        })
+        }
     }
 
     private fun hookGeofence(classLoader: ClassLoader) {
@@ -274,13 +300,14 @@ class SystemServicesHooks(val appLpparam: LoadPackageParam) {
             "com.android.server.LocationManagerService"
         ) ?: return
 
-        hookAll(serviceClass, "requestGeofence", object : XC_MethodHook() {
-            override fun beforeHookedMethod(param: MethodHookParam) {
-                if (!shouldSpoofArgs(param.args)) return
-                param.result = defaultReturnValue(param.method as? Method)
-                XposedBridge.log("$tag Blocked geofence registration while spoofing is enabled.")
+        hookAll(serviceClass, "requestGeofence") { chain ->
+            if (shouldSpoofArgs(chain.args)) {
+                module.log(Log.INFO, tag, "Blocked geofence registration while spoofing is enabled.")
+                defaultReturnValue(chain.executable as? Method)
+            } else {
+                chain.proceed()
             }
-        })
+        }
     }
 
     private fun isXiaomiFamilyDevice(): Boolean {
@@ -297,26 +324,37 @@ class SystemServicesHooks(val appLpparam: LoadPackageParam) {
         }
     }
 
-    private fun hookAll(clazz: Class<*>, methodName: String, callback: XC_MethodHook) {
-        try {
-            val hooks = XposedBridge.hookAllMethods(clazz, methodName, callback)
-            if (hooks.isNotEmpty()) {
-                XposedBridge.log("$tag Hooked ${clazz.name}#$methodName (${hooks.size} overloads).")
+    private fun hookAll(clazz: Class<*>, methodName: String, hooker: Hooker) {
+        val methods = clazz.declaredMethods.filter { it.name == methodName }
+        if (methods.isEmpty()) {
+            module.log(Log.WARN, tag, "No method named $methodName on ${clazz.name}")
+            return
+        }
+
+        var hooked = 0
+        methods.forEach { method ->
+            try {
+                module.hook(method).intercept(hooker)
+                hooked++
+            } catch (e: Throwable) {
+                module.log(Log.ERROR, tag, "Failed hooking ${clazz.name}#$methodName: ${e.message}")
             }
-        } catch (e: Throwable) {
-            XposedBridge.log("$tag Failed hooking ${clazz.name}#$methodName: ${e.message}")
+        }
+
+        if (hooked > 0) {
+            module.log(Log.INFO, tag, "Hooked ${clazz.name}#$methodName ($hooked overloads).")
         }
     }
 
     private fun findClass(classLoader: ClassLoader, vararg names: String): Class<*>? {
         names.forEach { name ->
             try {
-                return XposedHelpers.findClass(name, classLoader)
+                return Class.forName(name, false, classLoader)
             } catch (_: Throwable) {
                 // Try the next framework class name. AOSP moved these across releases.
             }
         }
-        XposedBridge.log("$tag None of these classes were found: ${names.joinToString()}")
+        module.log(Log.WARN, tag, "None of these classes were found: ${names.joinToString()}")
         return null
     }
 
@@ -347,19 +385,18 @@ class SystemServicesHooks(val appLpparam: LoadPackageParam) {
             executeMethod.isAccessible = true
             executeMethod.invoke(registration, operation)
         }.onFailure {
-            XposedBridge.log("$tag Failed delivering spoofed provider location: ${it.message}")
+            module.log(Log.ERROR, tag, "Failed delivering spoofed provider location: ${it.message}")
         }
     }
 
-    private fun shouldSpoofArgs(args: Array<Any?>?): Boolean {
-        return spoofPackageFromArgs(args) != null
-    }
-
-    private fun spoofPackageFromArgs(args: Array<Any?>?): String? {
+    // Name-based attribution for pull/query style calls: only spoof while playing and when a target
+    // package can be recovered from the call arguments (caller identity, work source, request, etc.).
+    private fun shouldSpoofArgs(args: List<Any?>?): Boolean {
+        if (PreferencesUtil.getIsPlaying() != true) return false
         return args?.asSequence()
             ?.flatMap { collectPackageNames(it).asSequence() }
             ?.distinct()
-            ?.firstOrNull(LocationUtil::shouldSpoofPackage)
+            ?.any(LocationUtil::shouldSpoofPackage) == true
     }
 
     private fun collectPackageNames(value: Any?): Set<String> {
@@ -484,9 +521,9 @@ class SystemServicesHooks(val appLpparam: LoadPackageParam) {
         return value != null && "." in value && !value.startsWith("android.location.")
     }
 
-    private fun replaceLocationLikeResult(result: Any?, method: Method?, packageName: String): Any? {
+    private fun replaceLocationLikeResult(result: Any?, method: Method?): Any? {
         if (result is Location) {
-            return LocationUtil.createFakeLocation(result, packageName = packageName)
+            return LocationUtil.createFakeLocation(result)
         }
 
         if (result != null) {
@@ -494,13 +531,13 @@ class SystemServicesHooks(val appLpparam: LoadPackageParam) {
             val originalLocations = locationsField?.get(result) as? List<*>
             val original = originalLocations?.firstOrNull() as? Location
             if (locationsField != null) {
-                locationsField.set(result, arrayListOf(LocationUtil.createFakeLocation(original, packageName = packageName)))
+                locationsField.set(result, arrayListOf(LocationUtil.createFakeLocation(original)))
                 return result
             }
 
             if (result is List<*>) {
                 val original = result.firstOrNull() as? Location
-                return listOf(LocationUtil.createFakeLocation(original, packageName = packageName))
+                return listOf(LocationUtil.createFakeLocation(original))
             }
 
             runCatching {
@@ -509,7 +546,7 @@ class SystemServicesHooks(val appLpparam: LoadPackageParam) {
                 val size = sizeMethod?.invoke(result) as? Int ?: return@runCatching
                 if (size > 0) {
                     val originalLocation = getMethod?.invoke(result, 0) as? Location ?: return@runCatching
-                    val fakeLocation = LocationUtil.createFakeLocation(originalLocation, packageName = packageName)
+                    val fakeLocation = LocationUtil.createFakeLocation(originalLocation)
                     originalLocation.latitude = fakeLocation.latitude
                     originalLocation.longitude = fakeLocation.longitude
                     originalLocation.altitude = fakeLocation.altitude
@@ -517,14 +554,14 @@ class SystemServicesHooks(val appLpparam: LoadPackageParam) {
                     originalLocation.speed = fakeLocation.speed
                 }
             }.onFailure {
-                XposedBridge.log("$tag Could not inspect MIUI location container: ${it.message}")
+                module.log(Log.ERROR, tag, "Could not inspect MIUI location container: ${it.message}")
             }
 
             return result
         }
 
         return if (method?.returnType?.let { Location::class.java.isAssignableFrom(it) } == true) {
-            LocationUtil.createFakeLocation(provider = LocationManager.FUSED_PROVIDER, packageName = packageName)
+            LocationUtil.createFakeLocation(provider = LocationManager.FUSED_PROVIDER)
         } else {
             null
         }

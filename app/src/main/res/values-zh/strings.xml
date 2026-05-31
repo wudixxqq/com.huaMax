@@ -1,6 +1,8 @@
 <resources>
     <string name="app_name">XposedFakeLocation</string>
 
+    <string name="description">spoof your device location globally or for specific apps</string>
+
     <string name="language_system">跟随系统</string>
     <string name="language_english">英语</string>
     <string name="language_chinese">中文</string>
@@ -42,13 +44,11 @@
 
     <string name="dialog_module_not_active_title">模块未激活</string>
     <string name="dialog_module_not_active_message">XposedFakeLocation 模块未在你的 Xposed 管理器中激活。请启用模块并重启应用后继续。</string>
-    <string name="dialog_reboot_required_title">需要重启</string>
-    <string name="dialog_reboot_required_message">你刚刚启用了“使用内置目标应用选择”。system_server 和 com.android.phone 的 hook 只能在启动时安装，因此需要完整重启设备才能让此更改生效。单个应用的 hook 不受影响，并会在下次启动对应应用时应用更改。</string>
 
     <string name="category_language">语言</string>
     <string name="category_notifications">通知</string>
-    <string name="category_target_apps">目标应用</string>
     <string name="category_external_control">外部控制</string>
+    <string name="category_system_hooks">系统级 Hook</string>
     <string name="category_location">位置</string>
     <string name="category_altitude">海拔</string>
     <string name="category_movement">移动</string>
@@ -57,10 +57,15 @@
     <string name="setting_language_description">选择管理器应用和 Xposed toast 提示使用的语言。</string>
     <string name="setting_hide_toast_title">隐藏“虚拟位置已启用”提示</string>
     <string name="setting_hide_toast_description">禁止在模块于目标应用中激活时显示 toast 提示</string>
-    <string name="setting_use_inapp_target_apps_title">使用内置目标应用选择</string>
-    <string name="setting_use_inapp_target_apps_description">开启（默认）：在应用内“目标应用”页面选择目标应用；LSPosed 作用域只需要选择“android”和“com.android.phone”。关闭：忽略应用内列表，并跳过 system-server / phone hook——请直接在 LSPosed 作用域中选择目标应用（v0.0.7 之前的行为）。只有启用此选项时才需要重启，以便在启动时安装 system_server 和 com.android.phone hook。切回仅 LSPosed 作用域的方式，或修改任何单应用目标列表，都会在下次启动对应应用时生效，无需重启。</string>
     <string name="setting_external_broadcast_title">允许外部广播控制</string>
     <string name="setting_external_broadcast_description">关闭（默认）：阻止 BroadcastReceiver，任何应用或 ADB shell 都不能通过 intent 开始/停止模拟或设置坐标。开启：任何已安装应用和“adb shell am broadcast”都可以驱动模块（无权限检查；坐标会被限制在有效经纬度范围内）。仅当你信任设备上的所有应用，或在受控设备（例如自动化设备）上运行时才启用。操作说明和锁定选项见 docs/EXTERNAL_CONTROL.md。</string>
+    <string name="setting_system_hooks_title">启用系统级 Hook</string>
+    <string name="setting_system_hooks_description">将 Android 系统框架（android）和电话进程（com.android.phone）添加到模块作用域，以便在系统层面模拟位置。更改需要重启设备后才能生效。</string>
+    <string name="dialog_restart_required_title">需要重启</string>
+    <string name="dialog_restart_required_enable_message">系统级 Hook 已添加到模块作用域。请重启设备以使其生效。</string>
+    <string name="dialog_restart_required_disable_message">系统级 Hook 已从模块作用域中移除。请重启设备以彻底撤销。</string>
+    <string name="system_hooks_module_inactive">模块未激活。请先在 Xposed 管理器中启用 XposedFakeLocation。</string>
+    <string name="system_hooks_scope_failed">无法更新作用域：%1$s</string>
     <string name="setting_more_info">关于 %1$s 的更多信息</string>
     <string name="setting_disable">关闭 %1$s</string>
     <string name="setting_enable">开启 %1$s</string>
@@ -137,6 +142,12 @@
     <string name="favorites_empty">还没有添加收藏。</string>
     <string name="target_apps_search_label">搜索应用或包名</string>
     <string name="target_apps_selected_count">已选择 %1$d 个</string>
+    <string name="target_apps_module_inactive">模块未激活。请在 Xposed 管理器中启用 XposedFakeLocation 以选择目标应用。</string>
+    <string name="target_apps_scope_request_failed">无法更新作用域：%1$s</string>
+    <string name="target_apps_relaunch_cd">重新启动 %1$s</string>
+    <string name="target_apps_relaunching">正在重新启动 %1$s…</string>
+    <string name="target_apps_relaunch_failed">无法重新启动 %1$s。是否已授予 Root 权限？</string>
+    <string name="target_apps_root_required">重新启动目标应用需要 XposedFakeLocation 拥有 Root 权限。请在您的 Root 管理器中授予该权限。</string>
 
     <string name="permissions_activity_error">错误：无法访问 Activity。</string>
     <string name="permissions_required">使用此应用需要授予权限</string>

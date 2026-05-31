@@ -6,7 +6,7 @@ plugins {
 
 // Version is derived from the release tag in CI (passed via -PappVersionName=vX.Y.Z or the
 // APP_VERSION_NAME env var). Local builds fall back to the dev version below.
-val fallbackVersionName = "0.0.9"
+val fallbackVersionName = "0.0.1"
 
 fun resolveVersionName(): String {
     val provided = (project.findProperty("appVersionName") as String?)
@@ -29,34 +29,44 @@ val appVersionCode = resolveVersionCode(appVersionName)
 
 android {
     namespace = "com.noobexon.xposedfakelocation"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.noobexon.xposedfakelocation"
         minSdk = 30
-        targetSdk = 34
+        targetSdk = 36
         versionCode = appVersionCode
         versionName = appVersionName
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs["debug"]
         }
+
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
+
+
+    packaging {
+        resources {
+            merges += "META-INF/xposed/*"
+        }
+    }
+
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "21"
     }
+
     buildFeatures {
         compose = true
         buildConfig = true
@@ -82,11 +92,7 @@ dependencies {
     implementation(libs.gson)
     implementation(libs.hiddenapibypass)
     implementation(libs.coil.compose)
-    
-    // DataStore
-    implementation(libs.androidx.datastore.preferences)
-    implementation(libs.androidx.datastore.preferences.core)
-    
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -95,6 +101,6 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-    compileOnly("de.robv.android.xposed:api:82:sources")
-    compileOnly("de.robv.android.xposed:api:82")
+    compileOnly(libs.libxposed.api)
+    implementation(libs.libxposed.service)
 }

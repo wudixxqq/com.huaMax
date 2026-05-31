@@ -4,6 +4,7 @@ package com.noobexon.xposedfakelocation.data
 // APP
 const val MANAGER_APP_PACKAGE_NAME = "com.noobexon.xposedfakelocation"
 const val SHARED_PREFS_FILE = "xposed_shared_prefs"
+const val REMOTE_PREFS_GROUP = "settings"
 
 // KEYS
 const val KEY_IS_PLAYING = "is_playing"
@@ -18,8 +19,6 @@ const val KEY_ALTITUDE  = "altitude"
 
 const val KEY_USE_RANDOMIZE  = "use_randomize"
 const val KEY_RANDOMIZE_RADIUS = "randomize_radius"
-const val KEY_USE_GPS_NOISE = "use_gps_noise"
-const val KEY_GPS_NOISE_LEVEL = "gps_noise_level"
 
 const val KEY_USE_VERTICAL_ACCURACY = "use_vertical_accuracy"
 const val KEY_VERTICAL_ACCURACY = "vertical_accuracy"
@@ -37,16 +36,18 @@ const val KEY_USE_SPEED_ACCURACY = "use_speed_accuracy"
 const val KEY_SPEED_ACCURACY = "speed_accuracy"
 
 const val KEY_FAVORITES = "favorites"
+
 const val KEY_TARGET_APPS = "target_apps"
-const val KEY_APP_LOCATION_PROFILES = "app_location_profiles"
-const val KEY_LOCATION_TEMPLATES = "location_templates"
 
 const val KEY_HIDE_FAKE_LOCATION_TOAST = "hide_fake_location_toast"
 
-const val KEY_USE_INAPP_TARGET_APPS = "use_inapp_target_apps"
-
 const val KEY_ENABLE_BROADCAST_CONTROL = "enable_broadcast_control"
 const val KEY_LANGUAGE_TAG = "language_tag"
+
+const val KEY_ENABLE_SYSTEM_HOOKS = "enable_system_hooks"
+
+// Packages added/removed from module scope when system-level hooks are toggled.
+val SYSTEM_HOOK_PACKAGES = listOf("android", "com.android.phone")
 
  // DEFAULT VALUES
 const val DEFAULT_USE_ACCURACY = false
@@ -57,8 +58,6 @@ const val DEFAULT_ALTITUDE = 0.0
 
 const val DEFAULT_USE_RANDOMIZE = false
 const val DEFAULT_RANDOMIZE_RADIUS = 0.0
-const val DEFAULT_USE_GPS_NOISE = false
-const val DEFAULT_GPS_NOISE_LEVEL = "NORMAL"
 
 const val DEFAULT_USE_VERTICAL_ACCURACY = false
 const val DEFAULT_VERTICAL_ACCURACY = 0.0f
@@ -77,10 +76,10 @@ const val DEFAULT_SPEED_ACCURACY = 0.0f
 
 const val DEFAULT_HIDE_FAKE_LOCATION_TOAST = false
 
-const val DEFAULT_USE_INAPP_TARGET_APPS = true
-
 const val DEFAULT_ENABLE_BROADCAST_CONTROL = false
 const val DEFAULT_LANGUAGE_TAG = ""
+
+const val DEFAULT_ENABLE_SYSTEM_HOOKS = false
 
 // MATH & PHYS
 const val PI = 3.14159265359

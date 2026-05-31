@@ -1,6 +1,8 @@
 <resources>
     <string name="app_name">XposedFakeLocation</string>
 
+    <string name="description">spoof your device location globally or for specific apps</string>
+
     <string name="language_system">System default</string>
     <string name="language_english">English</string>
     <string name="language_chinese">Chinese</string>
@@ -42,13 +44,11 @@
 
     <string name="dialog_module_not_active_title">Module Not Active</string>
     <string name="dialog_module_not_active_message">XposedFakeLocation module is not active in your Xposed manager app. Please enable it and restart the app to continue.</string>
-    <string name="dialog_reboot_required_title">Reboot required</string>
-    <string name="dialog_reboot_required_message">You just enabled \'Use built-in target app selection\'. The system_server and com.android.phone hooks can only be installed at boot, so a full device reboot is required for this change to take effect. Per-app hooks are unaffected and pick up changes on the next app launch.</string>
 
     <string name="category_language">Language</string>
     <string name="category_notifications">Notifications</string>
-    <string name="category_target_apps">Target Apps</string>
     <string name="category_external_control">External Control</string>
+    <string name="category_system_hooks">System Hooks</string>
     <string name="category_location">Location</string>
     <string name="category_altitude">Altitude</string>
     <string name="category_movement">Movement</string>
@@ -57,10 +57,15 @@
     <string name="setting_language_description">Choose the language used by the manager app and Xposed toast message.</string>
     <string name="setting_hide_toast_title">Hide \'Fake location active\' toast</string>
     <string name="setting_hide_toast_description">Suppresses the toast shown when the module activates in a target app</string>
-    <string name="setting_use_inapp_target_apps_title">Use built-in target app selection</string>
-    <string name="setting_use_inapp_target_apps_description">On (default): target apps are picked in the in-app \'Target Apps\' screen; LSPosed scope only needs \'android\' and \'com.android.phone\'. Off: the in-app list is ignored and the system-server / phone hooks are skipped — pick target apps directly in LSPosed scope (pre-v0.0.7 behavior). A reboot is only required when enabling this option, so the system_server and com.android.phone hooks can be installed at boot. Switching back to the LSPosed-scope-only method, or any per-app target-list change, takes effect at the next app launch — no reboot needed.</string>
     <string name="setting_external_broadcast_title">Allow external broadcast control</string>
     <string name="setting_external_broadcast_description">Off (default): blocks the BroadcastReceiver — no app or ADB shell can start/stop spoofing or set coordinates via intents. On: any installed app and \'adb shell am broadcast\' can drive the module (no permission check; coordinates are clamped to valid lat/lon ranges). Only enable this if you trust every app on the device or are running on a controlled (e.g., automation) device. See docs/EXTERNAL_CONTROL.md for actions and lock-down options.</string>
+    <string name="setting_system_hooks_title">Enable system-level hooks</string>
+    <string name="setting_system_hooks_description">Adds the Android system framework (android) and the phone process (com.android.phone) to the module scope so location can be spoofed at the system level. A device restart is required for changes to take effect.</string>
+    <string name="dialog_restart_required_title">Restart Required</string>
+    <string name="dialog_restart_required_enable_message">System-level hooks were added to the module scope. Please restart your device for them to take effect.</string>
+    <string name="dialog_restart_required_disable_message">System-level hooks were removed from the module scope. Please restart your device to fully undo them.</string>
+    <string name="system_hooks_module_inactive">Module is not active. Enable XposedFakeLocation in your Xposed manager first.</string>
+    <string name="system_hooks_scope_failed">Couldn\'t update scope: %1$s</string>
     <string name="setting_more_info">More information about %1$s</string>
     <string name="setting_disable">Disable %1$s</string>
     <string name="setting_enable">Enable %1$s</string>
@@ -137,6 +142,12 @@
     <string name="favorites_empty">No favorites added.</string>
     <string name="target_apps_search_label">Search apps or package names</string>
     <string name="target_apps_selected_count">%1$d selected</string>
+    <string name="target_apps_module_inactive">Module is not active. Enable XposedFakeLocation in your Xposed manager to choose target apps.</string>
+    <string name="target_apps_scope_request_failed">Couldn\'t update scope: %1$s</string>
+    <string name="target_apps_relaunch_cd">Relaunch %1$s</string>
+    <string name="target_apps_relaunching">Relaunching %1$s…</string>
+    <string name="target_apps_relaunch_failed">Couldn\'t relaunch %1$s. Is root granted?</string>
+    <string name="target_apps_root_required">Relaunching a target app requires XposedFakeLocation to have root access. Please grant it in your root manager.</string>
 
     <string name="permissions_activity_error">Error: Unable to access activity.</string>
     <string name="permissions_required">Permissions are required to use this app</string>

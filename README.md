@@ -8,12 +8,16 @@
 ![GitHub Release](https://img.shields.io/github/v/release/noobexon1/XposedFakeLocation?color=red)
 [![Platform](https://img.shields.io/badge/platform-Android-green.svg)]()
 
-**XposedFakeLocation** is an Android application and Xposed module that allows you to spoof your device's location globally or for specific apps without using "mock location" from the developer options. Customize your location with precision, including sensor data, and add randomization within a specified radius for enhanced privacy.
+**XposedFakeLocation** is an Android application and Xposed module that allows you to spoof your device's location for specific apps — and, optionally, at the system level — without using "mock location" from the developer options. Customize your location with precision, including sensor data, and add randomization within a specified radius for enhanced privacy.
 
 
 <div align="center">
     <img src="images/xposedfakelocation.webp" alt="App Logo" width="256" />
 </div>
+
+
+> [!IMPORTANT]
+> **This module now targets the modern libxposed API (Xposed API 101+).** You must use a recent **LSPosed** build that supports the new API — older managers will not load the module. Get the latest LSPosed from the official Telegram channel: **[t.me/LSPosed](https://t.me/LSPosed)**.
 
 
 ---
@@ -34,12 +38,15 @@
 
 ## **Features**
 
-- **Global or Per-App Location Spoofing**: Override your device's location data system-wide or on a per-app basis.
-- **Custom Coordinates**: Set precise GPS latitude and longitude coordinates.
-- **Fine-Tuned Spoofing Settings**: Customize other custom sensor values such as speed, speed accuracy, vertical accuracy, mean sea level, mean sea level accuracy, GPS noise, etc.
+- **Per-App Location Spoofing**: Pick the apps that should receive a fake location directly inside the app — your selection drives the LSPosed module scope automatically, so you never have to manage scope by hand.
+- **Optional System-Level Hooks**: Extend spoofing into the Android system framework (`android`) and the phone process (`com.android.phone`) for deeper coverage, via a single toggle in Settings.
+- **Custom Coordinates**: Set precise GPS latitude and longitude coordinates by tapping the integrated map.
+- **Fine-Tuned Spoofing Settings**: Customize sensor values such as horizontal/vertical accuracy, altitude, mean sea level (and its accuracy), speed (and its accuracy), and GPS noise.
 - **Randomization**: Set a radius for location randomization to mimic real-world movement patterns.
-- **Intuitive UI Navigation**: Easy access to maps, favorite locations, and settings.
-- **Per-App Templates**: Define reusable location profiles (coordinates + setting overrides) and assign different templates to different target apps simultaneously.
+- **Reactive Updates**: You only need to force-stop and restart a target app the **first** time it's added to the scope. After that, changes you make in the manager app (location, settings, start/stop) reflect in the running target app immediately — no restart required.
+- **Root Relaunch**: Force-stop and relaunch a target app straight from the Target Apps screen so spoofing takes effect immediately (requires root).
+- **Headless / External Control**: Drive the module from another app or `adb shell` via broadcast intents (off by default).
+- **Intuitive UI Navigation**: Easy access to the map, favorite locations, target apps, and settings.
 
 ---
 
@@ -47,7 +54,7 @@
 
 - **Rooted Android Device**: The app requires root access to function properly.
 - **Minimum Android Version**: 11 (API 30)
-- **Xposed Framework**: Install the `Xposed Framework` compatible with your Android version. It is recommended to use [LSPosed](https://github.com/LSPosed/LSPosed) as it is the most popular `Xposed Framework` manager app.
+- **Modern LSPosed (new API)**: This module is built against the **libxposed API (Xposed API 101+)**, so it requires a recent [LSPosed](https://github.com/LSPosed/LSPosed) build that supports the new API. Download the latest from the official Telegram channel: **[t.me/LSPosed](https://t.me/LSPosed)**. Legacy `Xposed`/`EdXposed` and older LSPosed managers are **not** supported.
 
 ---
 
@@ -83,13 +90,10 @@ If you want to build by yourself:
 
 4. **Activate the Xposed Module**
 
-   - Open `LSPosed Manager`.
-   - Enable the `XposedFakeLocation` module.
-   - In `LSPosed` scope settings, select `Android System Framework ('android')` and `Phone Services ('com.android.phone')`.
-   - Reboot your device to apply the scope change.
-   - Select target apps directly inside `XposedFakeLocation` instead of selecting each target app in LSPosed.
-
-   **Alternative (pre-v0.0.7 behavior):** If the in-app target selector does not work for you, open `Settings` inside `XposedFakeLocation` and turn `"Use built-in target app selection"` OFF. In that mode the in-app list is ignored and the `android` / `com.android.phone` system-wide hooks are skipped at boot. You then pick target apps directly in the `LSPosed` manager app (just like in v0.0.6) — add each target app to the module's scope there, remove `android` and `com.android.phone` if you no longer need them. Reboot your device to apply the scope change.
+   - Open a recent **LSPosed Manager** that supports the new API (see [Prerequisites](#prerequisites)).
+   - Enable the `XposedFakeLocation` module and reboot once.
+   - **Select target apps from inside `XposedFakeLocation`** (the `Target Apps` screen). Your selection updates the module's LSPosed scope automatically — there's no need to manage scope manually in LSPosed.
+   - **(Optional) System-level hooks:** to spoof the Android system framework (`android`) and phone process (`com.android.phone`) as well, open `Settings` inside `XposedFakeLocation` and enable **`Enable system-level hooks`**. This adds those packages to the scope; **reboot** your device for the change to take effect (and reboot again after turning it off).
 
 ---
 
@@ -105,15 +109,15 @@ If you want to build by yourself:
      - **Map**: Primary interface for location selection
      - **Favorites**: Saved locations for quick access
      - **Target Apps**: Apps that should receive spoofed locations.
-     - **Templates**: Concurrently spoof multiple apps with different locations and settings at the same time using templates.
      - **Settings**: Configure application behavior
      - **About**: View application information
 
 3. **Select Target Apps**
 
    - Open `Target Apps` from the navigation menu.
-   - Search for and select the apps that should receive spoofed locations.
+   - Search for and select the apps that should receive spoofed locations. Selecting/deselecting an app updates the module's LSPosed scope automatically.
    - Apps not selected here will keep receiving their normal location data.
+   - On a rooted device you can tap the relaunch button next to a selected app to force-stop and reopen it so spoofing applies right away.
 
 4. **Select a Location**
 
@@ -127,7 +131,7 @@ If you want to build by yourself:
 
    - Toggle the `Play/Stop` button to begin location spoofing.
    - `XposedFakeLocation` will override location data only for apps selected in `Target Apps`.
-   - If the target app was already running, it should be force stopped and reopened to apply the spoofing.
+   - **First time only:** when an app is newly added to the scope, force-stop and reopen it once (use the relaunch button, or do it manually) so the module is loaded into it. After that the module is reactive — any change you make in the manager (location, settings, start/stop) takes effect in the running target app immediately, with no further restarts.
 
 7. **Stop Spoofing**
 
@@ -184,8 +188,8 @@ This application is intended for **development and testing purposes only**. Misu
 ## **Acknowledgements**
 
 - [GpsSetter](https://github.com/Android1500/GpsSetter) - Highly inspired by this amazing project!
-- [Xposed Framework](https://repo.xposed.info/) - Java hooks
-- [LSPosed](https://github.com/LSPosed/LSPosed) - The go-to Xposed framework manager app.
+- [libxposed API](https://github.com/libxposed/api) - The modern Xposed API this module is built on.
+- [LSPosed](https://github.com/LSPosed/LSPosed) ([Telegram](https://t.me/LSPosed)) - The go-to Xposed framework manager app.
 - [OSMDroid](https://github.com/osmdroid/osmdroid) - Open-source offline map interface.
 - [Jetpack Compose](https://developer.android.com/jetpack/compose) - Modern UI toolkit for Android.
 - [Material Design 3](https://m3.material.io/) - Latest design system from Google.
