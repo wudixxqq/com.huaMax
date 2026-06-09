@@ -36,6 +36,7 @@ object LocationUtil {
     private const val DEBUG: Boolean = false
 
     private val random: Random = Random()
+    @Volatile private var mockProviderHideFailureLogged: Boolean = false
 
     var latitude: Double = 0.0
     var longitude: Double = 0.0
@@ -49,6 +50,8 @@ object LocationUtil {
 
     @Synchronized
     fun createFakeLocation(originalLocation: Location? = null, provider: String = LocationManager.GPS_PROVIDER): Location {
+        updateLocation()
+
         val fakeLocation = if (originalLocation == null) {
             Location(provider).apply {
                 time = System.currentTimeMillis() - 300
@@ -112,9 +115,14 @@ object LocationUtil {
     private fun attemptHideMockProvider(fakeLocation: Location) {
         try {
             HiddenApiBypass.invoke(fakeLocation.javaClass, fakeLocation, "setIsFromMockProvider", false)
-            log("invoked hidden API - setIsFromMockProvider: false)")
+            if (DEBUG) {
+                log("invoked hidden API - setIsFromMockProvider: false)")
+            }
         } catch (e: Exception) {
-            log("Not possible to mock - ${e.message}", priority = Log.ERROR)
+            if (!mockProviderHideFailureLogged) {
+                mockProviderHideFailureLogged = true
+                log("Not possible to hide mock provider - ${e.message}", priority = Log.ERROR)
+            }
         }
     }
 
@@ -132,32 +140,46 @@ object LocationUtil {
                     longitude = it.longitude
                 }
 
-                if (PreferencesUtil.getUseAccuracy() == true) {
-                    accuracy = (PreferencesUtil.getAccuracy() ?: DEFAULT_ACCURACY).toFloat()
+                accuracy = if (PreferencesUtil.getUseAccuracy()) {
+                    PreferencesUtil.getAccuracy().toFloat()
+                } else {
+                    DEFAULT_ACCURACY.toFloat()
                 }
 
-                if (PreferencesUtil.getUseAltitude() == true) {
-                    altitude = PreferencesUtil.getAltitude() ?: DEFAULT_ALTITUDE
+                altitude = if (PreferencesUtil.getUseAltitude()) {
+                    PreferencesUtil.getAltitude()
+                } else {
+                    DEFAULT_ALTITUDE
                 }
 
-                if (PreferencesUtil.getUseVerticalAccuracy() == true) {
-                    verticalAccuracy = PreferencesUtil.getVerticalAccuracy()?.toFloat() ?: DEFAULT_VERTICAL_ACCURACY
+                verticalAccuracy = if (PreferencesUtil.getUseVerticalAccuracy()) {
+                    PreferencesUtil.getVerticalAccuracy()
+                } else {
+                    DEFAULT_VERTICAL_ACCURACY
                 }
 
-                if (PreferencesUtil.getUseMeanSeaLevel() == true) {
-                    meanSeaLevel = PreferencesUtil.getMeanSeaLevel()?.toDouble() ?: DEFAULT_MEAN_SEA_LEVEL
+                meanSeaLevel = if (PreferencesUtil.getUseMeanSeaLevel()) {
+                    PreferencesUtil.getMeanSeaLevel()
+                } else {
+                    DEFAULT_MEAN_SEA_LEVEL
                 }
 
-                if (PreferencesUtil.getUseMeanSeaLevelAccuracy() == true) {
-                    meanSeaLevelAccuracy = PreferencesUtil.getMeanSeaLevelAccuracy()?.toFloat() ?: DEFAULT_MEAN_SEA_LEVEL_ACCURACY
+                meanSeaLevelAccuracy = if (PreferencesUtil.getUseMeanSeaLevelAccuracy()) {
+                    PreferencesUtil.getMeanSeaLevelAccuracy()
+                } else {
+                    DEFAULT_MEAN_SEA_LEVEL_ACCURACY
                 }
 
-                if (PreferencesUtil.getUseSpeed() == true) {
-                    speed = PreferencesUtil.getSpeed()?.toFloat() ?: DEFAULT_SPEED
+                speed = if (PreferencesUtil.getUseSpeed()) {
+                    PreferencesUtil.getSpeed()
+                } else {
+                    DEFAULT_SPEED
                 }
 
-                if (PreferencesUtil.getUseSpeedAccuracy() == true) {
-                    speedAccuracy = PreferencesUtil.getSpeedAccuracy()?.toFloat() ?: DEFAULT_SPEED_ACCURACY
+                speedAccuracy = if (PreferencesUtil.getUseSpeedAccuracy()) {
+                    PreferencesUtil.getSpeedAccuracy()
+                } else {
+                    DEFAULT_SPEED_ACCURACY
                 }
 
                 if (DEBUG) {
@@ -171,7 +193,11 @@ object LocationUtil {
                     log("\tSpeed: $speed")
                     log("\tSpeed Accuracy: $speedAccuracy")
                 }
-            } ?: log("Last clicked location is null")
+            } ?: run {
+                if (DEBUG) {
+                    log("Last clicked location is null")
+                }
+            }
         } catch (e: Exception) {
             log("Error - ${e.message}", priority = Log.ERROR)
         }

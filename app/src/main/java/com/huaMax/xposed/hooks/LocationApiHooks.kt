@@ -10,10 +10,20 @@ import io.github.libxposed.api.XposedInterface
 class LocationApiHooks(private val module: XposedInterface, private val classLoader: ClassLoader) {
     private val tag = "[LocationApiHooks]"
 
+    private companion object {
+        const val LOG_LOCATION_EVENTS = false
+    }
+
     fun initHooks() {
         hookLocation()
         hookLocationManager()
         module.log(Log.INFO, tag, "Instantiated hooks successfully")
+    }
+
+    private inline fun logLocationEvent(message: () -> String) {
+        if (LOG_LOCATION_EVENTS) {
+            module.log(Log.INFO, tag, message())
+        }
     }
 
     private fun hookLocation() {
@@ -22,11 +32,9 @@ class LocationApiHooks(private val module: XposedInterface, private val classLoa
 
             module.hook(locationClass.getDeclaredMethod("getLatitude")).intercept { chain ->
                 val original = chain.proceed()
-                LocationUtil.updateLocation()
-                module.log(Log.INFO, tag, "Leaving method getLatitude()")
-                module.log(Log.INFO, tag, "\t Original latitude: $original")
-                if (PreferencesUtil.getIsPlaying() == true) {
-                    module.log(Log.INFO, tag, "\t Modified to: ${LocationUtil.latitude}")
+                if (PreferencesUtil.getIsPlaying()) {
+                    LocationUtil.updateLocation()
+                    logLocationEvent { "getLatitude(): $original -> ${LocationUtil.latitude}" }
                     LocationUtil.latitude
                 } else {
                     original
@@ -35,11 +43,9 @@ class LocationApiHooks(private val module: XposedInterface, private val classLoa
 
             module.hook(locationClass.getDeclaredMethod("getLongitude")).intercept { chain ->
                 val original = chain.proceed()
-                LocationUtil.updateLocation()
-                module.log(Log.INFO, tag, "Leaving method getLongitude()")
-                module.log(Log.INFO, tag, "\t Original longitude: $original")
-                if (PreferencesUtil.getIsPlaying() == true) {
-                    module.log(Log.INFO, tag, "\t Modified to: ${LocationUtil.longitude}")
+                if (PreferencesUtil.getIsPlaying()) {
+                    LocationUtil.updateLocation()
+                    logLocationEvent { "getLongitude(): $original -> ${LocationUtil.longitude}" }
                     LocationUtil.longitude
                 } else {
                     original
@@ -48,11 +54,9 @@ class LocationApiHooks(private val module: XposedInterface, private val classLoa
 
             module.hook(locationClass.getDeclaredMethod("getAccuracy")).intercept { chain ->
                 val original = chain.proceed()
-                LocationUtil.updateLocation()
-                module.log(Log.INFO, tag, "Leaving method getAccuracy()")
-                module.log(Log.INFO, tag, "\t Original accuracy: $original")
-                if (PreferencesUtil.getIsPlaying() == true && PreferencesUtil.getUseAccuracy() == true) {
-                    module.log(Log.INFO, tag, "\t Modified to: ${LocationUtil.accuracy}")
+                if (PreferencesUtil.getIsPlaying() && PreferencesUtil.getUseAccuracy()) {
+                    LocationUtil.updateLocation()
+                    logLocationEvent { "getAccuracy(): $original -> ${LocationUtil.accuracy}" }
                     LocationUtil.accuracy
                 } else {
                     original
@@ -61,11 +65,9 @@ class LocationApiHooks(private val module: XposedInterface, private val classLoa
 
             module.hook(locationClass.getDeclaredMethod("getAltitude")).intercept { chain ->
                 val original = chain.proceed()
-                LocationUtil.updateLocation()
-                module.log(Log.INFO, tag, "Leaving method getAltitude()")
-                module.log(Log.INFO, tag, "\t Original altitude: $original")
-                if (PreferencesUtil.getIsPlaying() == true && PreferencesUtil.getUseAltitude() == true) {
-                    module.log(Log.INFO, tag, "\t Modified to: ${LocationUtil.altitude}")
+                if (PreferencesUtil.getIsPlaying() && PreferencesUtil.getUseAltitude()) {
+                    LocationUtil.updateLocation()
+                    logLocationEvent { "getAltitude(): $original -> ${LocationUtil.altitude}" }
                     LocationUtil.altitude
                 } else {
                     original
@@ -74,11 +76,11 @@ class LocationApiHooks(private val module: XposedInterface, private val classLoa
 
             module.hook(locationClass.getDeclaredMethod("getVerticalAccuracyMeters")).intercept { chain ->
                 val original = chain.proceed()
-                LocationUtil.updateLocation()
-                module.log(Log.INFO, tag, "Leaving method getVerticalAccuracyMeters()")
-                module.log(Log.INFO, tag, "\tOriginal vertical accuracy: $original")
-                if (PreferencesUtil.getIsPlaying() == true && PreferencesUtil.getUseVerticalAccuracy() == true) {
-                    module.log(Log.INFO, tag, "\tModified to: ${LocationUtil.verticalAccuracy}")
+                if (PreferencesUtil.getIsPlaying() && PreferencesUtil.getUseVerticalAccuracy()) {
+                    LocationUtil.updateLocation()
+                    logLocationEvent {
+                        "getVerticalAccuracyMeters(): $original -> ${LocationUtil.verticalAccuracy}"
+                    }
                     LocationUtil.verticalAccuracy
                 } else {
                     original
@@ -87,11 +89,9 @@ class LocationApiHooks(private val module: XposedInterface, private val classLoa
 
             module.hook(locationClass.getDeclaredMethod("getSpeed")).intercept { chain ->
                 val original = chain.proceed()
-                LocationUtil.updateLocation()
-                module.log(Log.INFO, tag, "Leaving method getSpeed()")
-                module.log(Log.INFO, tag, "\tOriginal speed: $original")
-                if (PreferencesUtil.getIsPlaying() == true && PreferencesUtil.getUseSpeed() == true) {
-                    module.log(Log.INFO, tag, "\tModified to: ${LocationUtil.speed}")
+                if (PreferencesUtil.getIsPlaying() && PreferencesUtil.getUseSpeed()) {
+                    LocationUtil.updateLocation()
+                    logLocationEvent { "getSpeed(): $original -> ${LocationUtil.speed}" }
                     LocationUtil.speed
                 } else {
                     original
@@ -100,11 +100,11 @@ class LocationApiHooks(private val module: XposedInterface, private val classLoa
 
             module.hook(locationClass.getDeclaredMethod("getSpeedAccuracyMetersPerSecond")).intercept { chain ->
                 val original = chain.proceed()
-                LocationUtil.updateLocation()
-                module.log(Log.INFO, tag, "Leaving method getSpeedAccuracyMetersPerSecond()")
-                module.log(Log.INFO, tag, "\tOriginal speed accuracy: $original")
-                if (PreferencesUtil.getIsPlaying() == true && PreferencesUtil.getUseSpeedAccuracy() == true) {
-                    module.log(Log.INFO, tag, "\tModified to: ${LocationUtil.speedAccuracy}")
+                if (PreferencesUtil.getIsPlaying() && PreferencesUtil.getUseSpeedAccuracy()) {
+                    LocationUtil.updateLocation()
+                    logLocationEvent {
+                        "getSpeedAccuracyMetersPerSecond(): $original -> ${LocationUtil.speedAccuracy}"
+                    }
                     LocationUtil.speedAccuracy
                 } else {
                     original
@@ -114,11 +114,9 @@ class LocationApiHooks(private val module: XposedInterface, private val classLoa
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 module.hook(locationClass.getDeclaredMethod("getMslAltitudeMeters")).intercept { chain ->
                     val original = chain.proceed()
-                    LocationUtil.updateLocation()
-                    module.log(Log.INFO, tag, "Leaving method getMslAltitudeMeters()")
-                    module.log(Log.INFO, tag, "\tOriginal MSL altitude: $original")
-                    if (PreferencesUtil.getIsPlaying() == true && PreferencesUtil.getUseMeanSeaLevel() == true) {
-                        module.log(Log.INFO, tag, "\tModified to: ${LocationUtil.meanSeaLevel}")
+                    if (PreferencesUtil.getIsPlaying() && PreferencesUtil.getUseMeanSeaLevel()) {
+                        LocationUtil.updateLocation()
+                        logLocationEvent { "getMslAltitudeMeters(): $original -> ${LocationUtil.meanSeaLevel}" }
                         LocationUtil.meanSeaLevel
                     } else {
                         original
@@ -127,20 +125,19 @@ class LocationApiHooks(private val module: XposedInterface, private val classLoa
 
                 module.hook(locationClass.getDeclaredMethod("getMslAltitudeAccuracyMeters")).intercept { chain ->
                     val original = chain.proceed()
-                    LocationUtil.updateLocation()
-                    module.log(Log.INFO, tag, "Leaving method getMslAltitudeAccuracyMeters()")
-                    module.log(Log.INFO, tag, "\tOriginal MSL altitude accuracy: $original")
-                    if (PreferencesUtil.getIsPlaying() == true && PreferencesUtil.getUseMeanSeaLevelAccuracy() == true) {
-                        module.log(Log.INFO, tag, "\tModified to: ${LocationUtil.meanSeaLevelAccuracy}")
+                    if (PreferencesUtil.getIsPlaying() && PreferencesUtil.getUseMeanSeaLevelAccuracy()) {
+                        LocationUtil.updateLocation()
+                        logLocationEvent {
+                            "getMslAltitudeAccuracyMeters(): $original -> ${LocationUtil.meanSeaLevelAccuracy}"
+                        }
                         LocationUtil.meanSeaLevelAccuracy
                     } else {
                         original
                     }
                 }
             } else {
-                module.log(Log.INFO, tag, "getMslAltitudeMeters() and getMslAltitudeAccuracyMeters() not available on this API level")
+                module.log(Log.INFO, tag, "MSL altitude APIs not available on this API level")
             }
-
         } catch (e: Exception) {
             module.log(Log.ERROR, tag, "Error hooking Location class - ${e.message}")
         }
@@ -153,19 +150,15 @@ class LocationApiHooks(private val module: XposedInterface, private val classLoa
 
             module.hook(method).intercept { chain ->
                 val original = chain.proceed() as? Location
-                module.log(Log.INFO, tag, "Leaving method getLastKnownLocation(provider)")
-                module.log(Log.INFO, tag, "\t Original location: $original")
                 val provider = chain.getArg(0) as String
-                module.log(Log.INFO, tag, "\t Requested data from: $provider")
-                if (PreferencesUtil.getIsPlaying() == true) {
+                if (PreferencesUtil.getIsPlaying()) {
                     val fakeLocation = LocationUtil.createFakeLocation(provider = provider)
-                    module.log(Log.INFO, tag, "\t Modified location: $fakeLocation")
+                    logLocationEvent { "getLastKnownLocation($provider): $original -> $fakeLocation" }
                     fakeLocation
                 } else {
                     original
                 }
             }
-
         } catch (e: Exception) {
             module.log(Log.ERROR, tag, "Error hooking LocationManager - ${e.message}")
         }

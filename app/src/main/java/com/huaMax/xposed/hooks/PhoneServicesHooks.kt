@@ -15,6 +15,10 @@ class PhoneServicesHooks(
 ) {
     private val tag = "[PhoneServicesHooks]"
 
+    private companion object {
+        const val LOG_PHONE_EVENTS = false
+    }
+
     fun initHooks() {
         val phoneInterfaceManagerClass = findClass(
             classLoader,
@@ -26,11 +30,17 @@ class PhoneServicesHooks(
         module.log(Log.INFO, tag, "Instantiated hooks successfully")
     }
 
+    private inline fun logPhoneEvent(message: () -> String) {
+        if (LOG_PHONE_EVENTS) {
+            module.log(Log.INFO, tag, message())
+        }
+    }
+
     private fun hookCellLocation(phoneInterfaceManagerClass: Class<*>) {
         hookAll(phoneInterfaceManagerClass, "getCellLocation") { chain ->
             val result = chain.proceed()
             if (shouldSpoofArgs(chain.args)) {
-                module.log(Log.INFO, tag, "Cleared cell location while spoofing.")
+                logPhoneEvent { "Cleared cell location while spoofing." }
                 null
             } else {
                 result
@@ -45,7 +55,7 @@ class PhoneServicesHooks(
                 // to GPS-derived location when spoofing is active.
                 // TODO: This may conflict with other telephony signals (for example, network type
                 // still reporting MOBILE). If users report issues, synthesize coherent fake data.
-                module.log(Log.INFO, tag, "Cleared all cell info while spoofing.")
+                logPhoneEvent { "Cleared all cell info while spoofing." }
                 emptyList<CellInfo>()
             } else {
                 chain.proceed()
@@ -57,7 +67,7 @@ class PhoneServicesHooks(
                 // Same reasoning as getAllCellInfo: keep neighboring towers empty to encourage
                 // GPS fallback in apps that combine cell and GNSS signals.
                 // TODO: If consistency checks fail in some apps, provide coherent fake neighbors.
-                module.log(Log.INFO, tag, "Cleared neighboring cell info while spoofing.")
+                logPhoneEvent { "Cleared neighboring cell info while spoofing." }
                 emptyList<NeighboringCellInfo>()
             } else {
                 chain.proceed()
@@ -66,7 +76,7 @@ class PhoneServicesHooks(
 
         hookAll(phoneInterfaceManagerClass, "requestCellInfoUpdateInternal") { chain ->
             if (shouldSpoofArgs(chain.args)) {
-                module.log(Log.INFO, tag, "Blocked async cell info update while spoofing.")
+                logPhoneEvent { "Blocked async cell info update while spoofing." }
                 defaultReturnValue(chain.executable as? Method)
             } else {
                 chain.proceed()

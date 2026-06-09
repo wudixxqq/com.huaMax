@@ -102,7 +102,7 @@ com.huaMax
 Current release version:
 
 ```text
-0.0.8
+0.0.10
 ```
 
 ## Legal Notice

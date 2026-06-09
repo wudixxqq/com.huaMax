@@ -5,173 +5,243 @@ import android.content.SharedPreferences
 import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.huaMax.data.*
+import com.huaMax.data.DEFAULT_ACCURACY
+import com.huaMax.data.DEFAULT_ALTITUDE
+import com.huaMax.data.DEFAULT_ENABLE_SYSTEM_HOOKS
+import com.huaMax.data.DEFAULT_HIDE_FAKE_LOCATION_TOAST
+import com.huaMax.data.DEFAULT_MEAN_SEA_LEVEL
+import com.huaMax.data.DEFAULT_MEAN_SEA_LEVEL_ACCURACY
+import com.huaMax.data.DEFAULT_RANDOMIZE_RADIUS
+import com.huaMax.data.DEFAULT_SPEED
+import com.huaMax.data.DEFAULT_SPEED_ACCURACY
+import com.huaMax.data.DEFAULT_USE_ACCURACY
+import com.huaMax.data.DEFAULT_USE_ALTITUDE
+import com.huaMax.data.DEFAULT_USE_MEAN_SEA_LEVEL
+import com.huaMax.data.DEFAULT_USE_MEAN_SEA_LEVEL_ACCURACY
+import com.huaMax.data.DEFAULT_USE_RANDOMIZE
+import com.huaMax.data.DEFAULT_USE_SPEED
+import com.huaMax.data.DEFAULT_USE_SPEED_ACCURACY
+import com.huaMax.data.DEFAULT_USE_VERTICAL_ACCURACY
+import com.huaMax.data.DEFAULT_VERTICAL_ACCURACY
+import com.huaMax.data.KEY_ACCURACY
+import com.huaMax.data.KEY_ALTITUDE
+import com.huaMax.data.KEY_AUTH_EXPIRES_AT_MILLIS
+import com.huaMax.data.KEY_AUTH_LAST_SEEN_MILLIS
+import com.huaMax.data.KEY_ENABLE_SYSTEM_HOOKS
+import com.huaMax.data.KEY_HIDE_FAKE_LOCATION_TOAST
+import com.huaMax.data.KEY_IS_PLAYING
+import com.huaMax.data.KEY_LAST_CLICKED_LOCATION
+import com.huaMax.data.KEY_MEAN_SEA_LEVEL
+import com.huaMax.data.KEY_MEAN_SEA_LEVEL_ACCURACY
+import com.huaMax.data.KEY_RANDOMIZE_RADIUS
+import com.huaMax.data.KEY_REMOTE_CONTROL_BLOCKED
+import com.huaMax.data.KEY_SPEED
+import com.huaMax.data.KEY_SPEED_ACCURACY
+import com.huaMax.data.KEY_TARGET_APPS
+import com.huaMax.data.KEY_USE_ACCURACY
+import com.huaMax.data.KEY_USE_ALTITUDE
+import com.huaMax.data.KEY_USE_MEAN_SEA_LEVEL
+import com.huaMax.data.KEY_USE_MEAN_SEA_LEVEL_ACCURACY
+import com.huaMax.data.KEY_USE_RANDOMIZE
+import com.huaMax.data.KEY_USE_SPEED
+import com.huaMax.data.KEY_USE_SPEED_ACCURACY
+import com.huaMax.data.KEY_USE_VERTICAL_ACCURACY
+import com.huaMax.data.KEY_VERTICAL_ACCURACY
 import com.huaMax.data.auth.AuthorizationManager
 import com.huaMax.data.model.LastClickedLocation
 
 object PreferencesUtil {
     private const val TAG = "[PreferencesUtil]"
+    private const val AUTH_RECHECK_INTERVAL_MILLIS = 60_000L
+    private const val CLOCK_ROLLBACK_GRACE_MILLIS = 10L * 60L * 1000L
 
     @Volatile var logger: ((Int, String, String) -> Unit)? = null
     private fun log(msg: String, priority: Int = Log.INFO) = logger?.invoke(priority, TAG, msg)
 
+    private val gson = Gson()
+    private val targetAppsType = object : TypeToken<List<String>>() {}.type
+
     @Volatile private var preferences: SharedPreferences? = null
+    @Volatile private var registeredPrefs: SharedPreferences? = null
+    @Volatile private var cache: PreferencesCache = PreferencesCache()
+    @Volatile private var lastAuthRecheckMillis: Long = 0L
 
     // IMPORTANT: keep a strong reference. SharedPreferences holds listeners *weakly*,
     // so a listener that isn't referenced anywhere gets GC'd and silently stops firing.
-    private val changeListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-            log("Remote pref changed: $key")
+    private val changeListener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, _ ->
+        refreshCache(prefs)
     }
 
     fun init(prefs: SharedPreferences) {
         preferences = prefs
-        prefs.registerOnSharedPreferenceChangeListener(changeListener)
-        log("Initialized with remote preferences")
+        if (registeredPrefs !== prefs) {
+            registeredPrefs?.let {
+                runCatching { it.unregisterOnSharedPreferenceChangeListener(changeListener) }
+            }
+            prefs.registerOnSharedPreferenceChangeListener(changeListener)
+            registeredPrefs = prefs
+        }
+        refreshCache(prefs)
+        log("Initialized with cached remote preferences")
     }
 
-    private val locationProxyPackages = setOf(
-        "com.android.location.fused",
-        "com.google.android.gms"
-    )
+    fun getIsPlaying(): Boolean {
+        val nowMillis = System.currentTimeMillis()
+        refreshAuthorizationIfNeeded(nowMillis)
+        val snapshot = cache
+        if (!snapshot.isPlaying || snapshot.remoteControlBlocked) return false
+        if (!snapshot.authorized || nowMillis > snapshot.authExpiresAtMillis) return false
+        if (snapshot.authLastSeenMillis > 0L && nowMillis + CLOCK_ROLLBACK_GRACE_MILLIS < snapshot.authLastSeenMillis) {
+            return false
+        }
+        return true
+    }
 
-    fun getIsPlaying(): Boolean? {
-        val prefs = preferences ?: return false
-        if (prefs.getBoolean(KEY_REMOTE_CONTROL_BLOCKED, false)) return false
-        val authorized = AuthorizationManager.getStatus(
+    fun getLastClickedLocation(): LastClickedLocation? = cache.lastClickedLocation
+    fun getUseAccuracy(): Boolean = cache.useAccuracy
+    fun getAccuracy(): Double = cache.accuracy
+    fun getUseAltitude(): Boolean = cache.useAltitude
+    fun getAltitude(): Double = cache.altitude
+    fun getUseRandomize(): Boolean = cache.useRandomize
+    fun getRandomizeRadius(): Double = cache.randomizeRadius
+    fun getUseVerticalAccuracy(): Boolean = cache.useVerticalAccuracy
+    fun getVerticalAccuracy(): Float = cache.verticalAccuracy
+    fun getUseMeanSeaLevel(): Boolean = cache.useMeanSeaLevel
+    fun getMeanSeaLevel(): Double = cache.meanSeaLevel
+    fun getUseMeanSeaLevelAccuracy(): Boolean = cache.useMeanSeaLevelAccuracy
+    fun getMeanSeaLevelAccuracy(): Float = cache.meanSeaLevelAccuracy
+    fun getUseSpeed(): Boolean = cache.useSpeed
+    fun getSpeed(): Float = cache.speed
+    fun getUseSpeedAccuracy(): Boolean = cache.useSpeedAccuracy
+    fun getSpeedAccuracy(): Float = cache.speedAccuracy
+    fun getHideFakeLocationToast(): Boolean = cache.hideFakeLocationToast
+    fun getEnableSystemHooks(): Boolean = cache.enableSystemHooks
+    fun getTargetApps(): Set<String> = cache.targetApps
+
+    private fun refreshAuthorizationIfNeeded(nowMillis: Long) {
+        if (nowMillis - lastAuthRecheckMillis < AUTH_RECHECK_INTERVAL_MILLIS) return
+        val prefs = preferences ?: return
+        synchronized(this) {
+            if (nowMillis - lastAuthRecheckMillis < AUTH_RECHECK_INTERVAL_MILLIS) return
+            lastAuthRecheckMillis = nowMillis
+
+            val result = AuthorizationManager.getStatus(
+                prefs,
+                nowMillis = nowMillis,
+                updateLastSeen = true
+            )
+            cache = cache.copy(
+                authorized = result is AuthorizationManager.ValidationResult.Valid,
+                authExpiresAtMillis = (result as? AuthorizationManager.ValidationResult.Valid)
+                    ?.expiresAtMillis
+                    ?: 0L,
+                authLastSeenMillis = prefs.getLong(KEY_AUTH_LAST_SEEN_MILLIS, nowMillis)
+            )
+        }
+    }
+
+    private fun refreshCache(prefs: SharedPreferences? = preferences) {
+        if (prefs == null) {
+            cache = PreferencesCache()
+            return
+        }
+
+        val nowMillis = System.currentTimeMillis()
+        val authStatus = AuthorizationManager.getStatus(
             prefs,
-            updateLastSeen = true
-        ) is AuthorizationManager.ValidationResult.Valid
-        if (!authorized) return false
-        return getPreference<Boolean>(KEY_IS_PLAYING)
+            nowMillis = nowMillis,
+            updateLastSeen = false
+        )
+
+        cache = PreferencesCache(
+            isPlaying = prefs.getBoolean(KEY_IS_PLAYING, false),
+            remoteControlBlocked = prefs.getBoolean(KEY_REMOTE_CONTROL_BLOCKED, false),
+            authorized = authStatus is AuthorizationManager.ValidationResult.Valid,
+            authExpiresAtMillis = (authStatus as? AuthorizationManager.ValidationResult.Valid)
+                ?.expiresAtMillis
+                ?: prefs.getLong(KEY_AUTH_EXPIRES_AT_MILLIS, 0L),
+            authLastSeenMillis = prefs.getLong(KEY_AUTH_LAST_SEEN_MILLIS, 0L),
+            lastClickedLocation = parseLastClickedLocation(prefs.getString(KEY_LAST_CLICKED_LOCATION, null)),
+            useAccuracy = prefs.getBoolean(KEY_USE_ACCURACY, DEFAULT_USE_ACCURACY),
+            accuracy = readDouble(prefs, KEY_ACCURACY, DEFAULT_ACCURACY),
+            useAltitude = prefs.getBoolean(KEY_USE_ALTITUDE, DEFAULT_USE_ALTITUDE),
+            altitude = readDouble(prefs, KEY_ALTITUDE, DEFAULT_ALTITUDE),
+            useRandomize = prefs.getBoolean(KEY_USE_RANDOMIZE, DEFAULT_USE_RANDOMIZE),
+            randomizeRadius = readDouble(prefs, KEY_RANDOMIZE_RADIUS, DEFAULT_RANDOMIZE_RADIUS),
+            useVerticalAccuracy = prefs.getBoolean(KEY_USE_VERTICAL_ACCURACY, DEFAULT_USE_VERTICAL_ACCURACY),
+            verticalAccuracy = prefs.getFloat(KEY_VERTICAL_ACCURACY, DEFAULT_VERTICAL_ACCURACY),
+            useMeanSeaLevel = prefs.getBoolean(KEY_USE_MEAN_SEA_LEVEL, DEFAULT_USE_MEAN_SEA_LEVEL),
+            meanSeaLevel = readDouble(prefs, KEY_MEAN_SEA_LEVEL, DEFAULT_MEAN_SEA_LEVEL),
+            useMeanSeaLevelAccuracy = prefs.getBoolean(
+                KEY_USE_MEAN_SEA_LEVEL_ACCURACY,
+                DEFAULT_USE_MEAN_SEA_LEVEL_ACCURACY
+            ),
+            meanSeaLevelAccuracy = prefs.getFloat(
+                KEY_MEAN_SEA_LEVEL_ACCURACY,
+                DEFAULT_MEAN_SEA_LEVEL_ACCURACY
+            ),
+            useSpeed = prefs.getBoolean(KEY_USE_SPEED, DEFAULT_USE_SPEED),
+            speed = prefs.getFloat(KEY_SPEED, DEFAULT_SPEED),
+            useSpeedAccuracy = prefs.getBoolean(KEY_USE_SPEED_ACCURACY, DEFAULT_USE_SPEED_ACCURACY),
+            speedAccuracy = prefs.getFloat(KEY_SPEED_ACCURACY, DEFAULT_SPEED_ACCURACY),
+            hideFakeLocationToast = prefs.getBoolean(
+                KEY_HIDE_FAKE_LOCATION_TOAST,
+                DEFAULT_HIDE_FAKE_LOCATION_TOAST
+            ),
+            enableSystemHooks = prefs.getBoolean(KEY_ENABLE_SYSTEM_HOOKS, DEFAULT_ENABLE_SYSTEM_HOOKS),
+            targetApps = parseTargetApps(prefs.getString(KEY_TARGET_APPS, null))
+        )
     }
 
-    fun getLastClickedLocation(): LastClickedLocation? {
-        return getPreference<LastClickedLocation>(KEY_LAST_CLICKED_LOCATION)
+    private fun parseLastClickedLocation(json: String?): LastClickedLocation? {
+        if (json.isNullOrBlank()) return null
+        return runCatching { gson.fromJson(json, LastClickedLocation::class.java) }
+            .onFailure { log("Error parsing $KEY_LAST_CLICKED_LOCATION JSON: ${it.message}", Log.ERROR) }
+            .getOrNull()
     }
 
-    fun getUseAccuracy(): Boolean? {
-        return getPreference<Boolean>(KEY_USE_ACCURACY)
+    private fun parseTargetApps(json: String?): Set<String> {
+        if (json.isNullOrBlank()) return emptySet()
+        return runCatching {
+            gson.fromJson<List<String>?>(json, targetAppsType)
+                ?.filter { it.isNotBlank() }
+                ?.toSet()
+                ?: emptySet()
+        }.onFailure {
+            log("Error parsing $KEY_TARGET_APPS JSON: ${it.message}", Log.ERROR)
+        }.getOrDefault(emptySet())
     }
 
-    fun getAccuracy(): Double? {
-        return getPreference<Double>(KEY_ACCURACY)
+    private fun readDouble(prefs: SharedPreferences, key: String, default: Double): Double {
+        val bits = prefs.getLong(key, java.lang.Double.doubleToRawLongBits(default))
+        return java.lang.Double.longBitsToDouble(bits)
     }
 
-    fun getUseAltitude(): Boolean? {
-        return getPreference<Boolean>(KEY_USE_ALTITUDE)
-    }
-
-    fun getAltitude(): Double? {
-        return getPreference<Double>(KEY_ALTITUDE)
-    }
-
-    fun getUseRandomize(): Boolean? {
-        return getPreference<Boolean>(KEY_USE_RANDOMIZE)
-    }
-
-    fun getRandomizeRadius(): Double? {
-        return getPreference<Double>(KEY_RANDOMIZE_RADIUS)
-    }
-
-    fun getUseVerticalAccuracy(): Boolean? {
-        return getPreference<Boolean>(KEY_USE_VERTICAL_ACCURACY)
-    }
-
-    fun getVerticalAccuracy(): Float? {
-        return getPreference<Float>(KEY_VERTICAL_ACCURACY)
-    }
-
-    fun getUseMeanSeaLevel(): Boolean? {
-        return getPreference<Boolean>(KEY_USE_MEAN_SEA_LEVEL)
-    }
-
-    fun getMeanSeaLevel(): Double? {
-        return getPreference<Double>(KEY_MEAN_SEA_LEVEL)
-    }
-
-    fun getUseMeanSeaLevelAccuracy(): Boolean? {
-        return getPreference<Boolean>(KEY_USE_MEAN_SEA_LEVEL_ACCURACY)
-    }
-
-    fun getMeanSeaLevelAccuracy(): Float? {
-        return getPreference<Float>(KEY_MEAN_SEA_LEVEL_ACCURACY)
-    }
-
-    fun getUseSpeed(): Boolean? {
-        return getPreference<Boolean>(KEY_USE_SPEED)
-    }
-
-    fun getSpeed(): Float? {
-        return getPreference<Float>(KEY_SPEED)
-    }
-
-    fun getUseSpeedAccuracy(): Boolean? {
-        return getPreference<Boolean>(KEY_USE_SPEED_ACCURACY)
-    }
-
-    fun getSpeedAccuracy(): Float? {
-        return getPreference<Float>(KEY_SPEED_ACCURACY)
-    }
-
-    fun getHideFakeLocationToast(): Boolean? {
-        return getPreference<Boolean>(KEY_HIDE_FAKE_LOCATION_TOAST)
-    }
-
-    // Mirrors the manager-side scope selection. Stored by PreferencesRepository as a JSON array
-    // of package names, so it must be parsed the same way here (not via the generic getPreference).
-    fun getTargetApps(): Set<String> {
-        val prefs = preferences ?: return emptySet()
-        val json = prefs.getString(KEY_TARGET_APPS, null) ?: return emptySet()
-        return try {
-            val type = object : TypeToken<List<String>>() {}.type
-            Gson().fromJson<List<String>?>(json, type)?.toSet() ?: emptySet()
-        } catch (e: Exception) {
-            log("Error parsing $KEY_TARGET_APPS JSON: ${e.message}", Log.ERROR)
-            emptySet()
-        }
-    }
-
-    private inline fun <reified T> getPreference(key: String): T? {
-        val preferences = preferences ?: return null
-        return when (T::class) {
-            Double::class -> {
-                val defaultValue = when (key) {
-                    KEY_ACCURACY -> java.lang.Double.doubleToRawLongBits(DEFAULT_ACCURACY)
-                    KEY_ALTITUDE -> java.lang.Double.doubleToRawLongBits(DEFAULT_ALTITUDE)
-                    KEY_RANDOMIZE_RADIUS -> java.lang.Double.doubleToRawLongBits(DEFAULT_RANDOMIZE_RADIUS)
-                    KEY_MEAN_SEA_LEVEL -> java.lang.Double.doubleToRawLongBits(DEFAULT_MEAN_SEA_LEVEL)
-                    else -> -1L
-                }
-                val bits = preferences.getLong(key, defaultValue)
-                java.lang.Double.longBitsToDouble(bits) as? T
-            }
-            Float::class -> {
-                val defaultValue = when (key) {
-                    KEY_VERTICAL_ACCURACY -> DEFAULT_VERTICAL_ACCURACY
-                    KEY_MEAN_SEA_LEVEL_ACCURACY -> DEFAULT_MEAN_SEA_LEVEL_ACCURACY
-                    KEY_SPEED -> DEFAULT_SPEED
-                    KEY_SPEED_ACCURACY -> DEFAULT_SPEED_ACCURACY
-                    else -> -1f
-                }
-                preferences.getFloat(key, defaultValue) as? T
-            }
-            Boolean::class -> preferences.getBoolean(key, false) as? T
-            else -> {
-                val json = preferences.getString(key, null)
-                if (json != null) {
-                    try {
-                        Gson().fromJson(json, T::class.java).also {
-                            log("Retrieved $key: $it")
-                        }
-                    } catch (e: Exception) {
-                        log("Error parsing $key JSON: ${e.message}")
-                        null
-                    }
-                } else {
-                    log("$key not found in preferences.")
-                    null
-                }
-            }
-        }
-    }
+    private data class PreferencesCache(
+        val isPlaying: Boolean = false,
+        val remoteControlBlocked: Boolean = false,
+        val authorized: Boolean = false,
+        val authExpiresAtMillis: Long = 0L,
+        val authLastSeenMillis: Long = 0L,
+        val lastClickedLocation: LastClickedLocation? = null,
+        val useAccuracy: Boolean = DEFAULT_USE_ACCURACY,
+        val accuracy: Double = DEFAULT_ACCURACY,
+        val useAltitude: Boolean = DEFAULT_USE_ALTITUDE,
+        val altitude: Double = DEFAULT_ALTITUDE,
+        val useRandomize: Boolean = DEFAULT_USE_RANDOMIZE,
+        val randomizeRadius: Double = DEFAULT_RANDOMIZE_RADIUS,
+        val useVerticalAccuracy: Boolean = DEFAULT_USE_VERTICAL_ACCURACY,
+        val verticalAccuracy: Float = DEFAULT_VERTICAL_ACCURACY,
+        val useMeanSeaLevel: Boolean = DEFAULT_USE_MEAN_SEA_LEVEL,
+        val meanSeaLevel: Double = DEFAULT_MEAN_SEA_LEVEL,
+        val useMeanSeaLevelAccuracy: Boolean = DEFAULT_USE_MEAN_SEA_LEVEL_ACCURACY,
+        val meanSeaLevelAccuracy: Float = DEFAULT_MEAN_SEA_LEVEL_ACCURACY,
+        val useSpeed: Boolean = DEFAULT_USE_SPEED,
+        val speed: Float = DEFAULT_SPEED,
+        val useSpeedAccuracy: Boolean = DEFAULT_USE_SPEED_ACCURACY,
+        val speedAccuracy: Float = DEFAULT_SPEED_ACCURACY,
+        val hideFakeLocationToast: Boolean = DEFAULT_HIDE_FAKE_LOCATION_TOAST,
+        val enableSystemHooks: Boolean = DEFAULT_ENABLE_SYSTEM_HOOKS,
+        val targetApps: Set<String> = emptySet()
+    )
 }

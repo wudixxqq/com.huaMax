@@ -23,6 +23,10 @@ class SystemServicesHooks(
 ) {
     private val tag = "[SystemServicesHooks]"
 
+    private companion object {
+        const val LOG_SYSTEM_LOCATION_EVENTS = false
+    }
+
     fun initHooks() {
         hookLastLocation(classLoader)
         hookCurrentLocation(classLoader)
@@ -32,6 +36,12 @@ class SystemServicesHooks(
         hookGnssRegistration(classLoader)
         hookGeofence(classLoader)
         module.log(Log.INFO, tag, "Instantiated hooks successfully")
+    }
+
+    private inline fun logSystemLocationEvent(message: () -> String) {
+        if (LOG_SYSTEM_LOCATION_EVENTS) {
+            module.log(Log.INFO, tag, message())
+        }
     }
 
     private fun hookLastLocation(classLoader: ClassLoader) {
@@ -45,7 +55,7 @@ class SystemServicesHooks(
             val result = chain.proceed()
             if (shouldSpoofArgs(chain.args)) {
                 val original = result as? Location
-                module.log(Log.INFO, tag, "Replaced getLastLocation result.")
+                logSystemLocationEvent { "Replaced getLastLocation result." }
                 LocationUtil.createFakeLocation(original)
             } else {
                 result
@@ -62,7 +72,7 @@ class SystemServicesHooks(
 
         hookAll(serviceClass, "getCurrentLocation") { chain ->
             if (shouldSpoofArgs(chain.args)) {
-                module.log(Log.INFO, tag, "Blocked getCurrentLocation request for spoofed target.")
+                logSystemLocationEvent { "Blocked getCurrentLocation request for spoofed target." }
                 defaultReturnValue(chain.executable as? Method)
             } else {
                 chain.proceed()
@@ -110,7 +120,7 @@ class SystemServicesHooks(
                 // the passthrough set so the real location is never pushed to it below.
                 locationsField.set(locationResult, arrayListOf(fakeLocation))
                 deliverLocationToRegistration(value, locationResult)
-                module.log(Log.INFO, tag, "Delivered spoofed provider location to $spoofedPackage.")
+                logSystemLocationEvent { "Delivered spoofed provider location to $spoofedPackage." }
             } else {
                 passthroughRegistrations[key] = value
             }
@@ -141,7 +151,7 @@ class SystemServicesHooks(
         hookAll(miuiClass, "getBlurryLocation") { chain ->
             val result = chain.proceed()
             if (shouldSpoofArgs(chain.args)) {
-                module.log(Log.INFO, tag, "Replaced MIUI blurry location result.")
+                logSystemLocationEvent { "Replaced MIUI blurry location result." }
                 replaceLocationLikeResult(result, chain.executable as? Method)
             } else {
                 result
@@ -151,7 +161,7 @@ class SystemServicesHooks(
         hookAll(miuiClass, "getBlurryCellLocation") { chain ->
             val result = chain.proceed()
             if (shouldSpoofArgs(chain.args)) {
-                module.log(Log.INFO, tag, "Cleared MIUI blurry cell location result.")
+                logSystemLocationEvent { "Cleared MIUI blurry cell location result." }
                 null
             } else {
                 result
@@ -161,7 +171,7 @@ class SystemServicesHooks(
         hookAll(miuiClass, "getBlurryCellInfos") { chain ->
             val result = chain.proceed()
             if (shouldSpoofArgs(chain.args)) {
-                module.log(Log.INFO, tag, "Cleared MIUI blurry cell info result.")
+                logSystemLocationEvent { "Cleared MIUI blurry cell info result." }
                 emptyList<CellInfo>()
             } else {
                 result
@@ -170,7 +180,7 @@ class SystemServicesHooks(
 
         hookAll(miuiClass, "handleGpsLocationChangedLocked") { chain ->
             if (shouldSpoofArgs(chain.args)) {
-                module.log(Log.INFO, tag, "Blocked MIUI GPS location refresh while spoofing.")
+                logSystemLocationEvent { "Blocked MIUI GPS location refresh while spoofing." }
                 defaultReturnValue(chain.executable as? Method)
             } else {
                 chain.proceed()
@@ -202,7 +212,7 @@ class SystemServicesHooks(
         val original = args[locationArgIndex] as? Location
         val newArgs = args.toTypedArray()
         newArgs[locationArgIndex] = LocationUtil.createFakeLocation(original)
-        module.log(Log.INFO, tag, "Replaced Receiver.callLocationChangedLocked argument.")
+        logSystemLocationEvent { "Replaced Receiver.callLocationChangedLocked argument." }
         return chain.proceed(newArgs)
     }
 
@@ -229,7 +239,7 @@ class SystemServicesHooks(
             methodsToBlock.forEach { methodName ->
                 hookAll(serviceClass, methodName) { chain ->
                     if (shouldSpoofArgs(chain.args)) {
-                        module.log(Log.INFO, tag, "Blocked $methodName while spoofing is enabled.")
+                        logSystemLocationEvent { "Blocked $methodName while spoofing is enabled." }
                         defaultReturnValue(chain.executable as? Method)
                     } else {
                         chain.proceed()
@@ -268,7 +278,7 @@ class SystemServicesHooks(
         hookAll(wifiServiceClass, "getScanResults") { chain ->
             val result = chain.proceed()
             if (shouldSpoofArgs(chain.args)) {
-                module.log(Log.INFO, tag, "Cleared Wi-Fi scan results while spoofing.")
+                logSystemLocationEvent { "Cleared Wi-Fi scan results while spoofing." }
                 emptyList<Any>()
             } else {
                 result
@@ -280,7 +290,7 @@ class SystemServicesHooks(
             if (shouldSpoofArgs(chain.args)) {
                 // TODO: These Wi-Fi identity values are hardcoded as a temporary fallback.
                 // Expose them as user-configurable settings in the manager app.
-                module.log(Log.INFO, tag, "Replaced Wi-Fi connection info while spoofing.")
+                logSystemLocationEvent { "Replaced Wi-Fi connection info while spoofing." }
                 WifiInfo.Builder()
                     .setBssid("02:00:00:00:00:00")
                     .setSsid("AndroidAP".toByteArray())
@@ -302,7 +312,7 @@ class SystemServicesHooks(
 
         hookAll(serviceClass, "requestGeofence") { chain ->
             if (shouldSpoofArgs(chain.args)) {
-                module.log(Log.INFO, tag, "Blocked geofence registration while spoofing is enabled.")
+                logSystemLocationEvent { "Blocked geofence registration while spoofing is enabled." }
                 defaultReturnValue(chain.executable as? Method)
             } else {
                 chain.proceed()
