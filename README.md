@@ -17,7 +17,7 @@ The module can make selected apps receive a configured virtual location. It is i
 - Optional external broadcast control for automation.
 - 10-day activation code flow for managed distribution.
 - Remote control JSON for enable, disable, and force-update states.
-- Telegram community link: <https://t.me/LocationMaxx>
+- Telegram community link: <https://t.me/+w4ftZ0ZAmrRhOTZl>
 
 ## Package
 
@@ -102,7 +102,7 @@ com.huaMax
 Current release version:
 
 ```text
-0.0.6
+0.0.7
 ```
 
 ## Legal Notice

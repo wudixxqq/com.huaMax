@@ -129,7 +129,7 @@ fun DrawerContent(
                 icon = LineAwesomeIcons.TelegramPlane,
                 label = stringResource(R.string.drawer_telegram_group),
                 onClick = {
-                    uriHandler.openUri("https://t.me/LocationMaxx")
+                    uriHandler.openUri("https://t.me/+w4ftZ0ZAmrRhOTZl")
                     onCloseDrawer()
                 }
             )

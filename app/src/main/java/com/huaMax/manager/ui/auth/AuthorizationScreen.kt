@@ -145,7 +145,7 @@ fun AuthorizationScreen(
             Spacer(modifier = Modifier.height(10.dp))
 
             OutlinedButton(
-                onClick = { uriHandler.openUri("https://t.me/LocationMaxx") },
+                onClick = { uriHandler.openUri("https://t.me/+w4ftZ0ZAmrRhOTZl") },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(stringResource(R.string.auth_join_group_for_code))

@@ -53,14 +53,14 @@ git remote set-url origin https://github.com/YOUR_NAME/com.huaMax.git
 The current local version is:
 
 ```text
-versionCode: 6
-versionName: 0.0.6
+versionCode: 7
+versionName: 0.0.7
 ```
 
 For the LSPosed module repository, the safest release tag is:
 
 ```text
-6-0.0.6
+7-0.0.7
 ```
 
 Upload this APK as a release asset:
@@ -72,17 +72,15 @@ LocationMax-release.apk
 The release title can be:
 
 ```text
-LocationMax 0.0.6
+LocationMax 0.0.7
 ```
 
 Suggested release notes:
 
 ```text
-LocationMax 0.0.6
+LocationMax 0.0.7
 
-- Removed the drawer Map shortcut.
-- Added an in-app update check under App Info.
-- The update page checks the latest GitHub release and opens the GitHub download page when a newer version is available.
+- Updated the Telegram community invite link.
 
 For lawful testing and debugging only.
 ```
@@ -132,7 +130,7 @@ The repository bot can create a package repository under `Xposed-Modules-Repo` a
 The public module repository expects a valid GitHub release with an APK asset. The release tag should be:
 
 ```text
-6-0.0.6
+7-0.0.7
 ```
 
 The repository should include:
