@@ -1,11 +1,16 @@
 name: Build & attach release APK
 
-# Triggered when you publish a GitHub Release (with your own notes).
+# Manual-only helper for repository maintainers.
 # CI builds the release APK, versions it from the release tag, signs it with
 # the release keystore from GitHub Secrets, and attaches LocationMax.apk.
+# Normal releases are uploaded from the local machine so GitHub Secrets are not required.
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Existing GitHub Release tag, for example 8-0.0.8"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -50,7 +55,7 @@ jobs:
       - name: Resolve app version name
         id: version
         run: |
-          tag="${{ github.event.release.tag_name }}"
+          tag="${{ inputs.release_tag }}"
           version="${tag#v}"
           if echo "$version" | grep -Eq '^[0-9]+-.+'; then
             version="${version#*-}"
@@ -66,4 +71,4 @@ jobs:
       - name: Upload APK to release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" LocationMax.apk --clobber
+        run: gh release upload "${{ inputs.release_tag }}" LocationMax.apk --clobber
