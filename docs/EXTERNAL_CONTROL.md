@@ -1,6 +1,6 @@
 # External Intent Control
 
-XposedFakeLocation can expose a `BroadcastReceiver` that lets any app on the device — or `adb shell` — control faking headlessly: start it, stop it, and update the fake coordinates without opening the XposedFakeLocation UI.
+LocationMax can expose a `BroadcastReceiver` that lets any app on the device — or `adb shell` — control faking headlessly: start it, stop it, and update the fake coordinates without opening the LocationMax UI.
 
 ## Disabled by default — opt in via Settings
 
@@ -26,9 +26,9 @@ If you want to lock it down further, re-introduce a custom `<permission android:
 
 | Action | Extras | Effect |
 |--------|--------|--------|
-| `com.noobexon.xposedfakelocation.action.START` | optional `latitude` (double), `longitude` (double) | Sets `is_playing = true`. If lat/lon extras are provided, the active fake location is updated first. |
-| `com.noobexon.xposedfakelocation.action.STOP`  | none | Sets `is_playing = false`. |
-| `com.noobexon.xposedfakelocation.action.SET_LOCATION` | required `latitude` (double), `longitude` (double); optional `accuracy` (float); optional `start` (boolean) | Updates active fake location. If `accuracy` is provided, accuracy override is enabled. If `start=true`, faking is also started. |
+| `com.huaMax.action.START` | optional `latitude` (double), `longitude` (double) | Sets `is_playing = true`. If lat/lon extras are provided, the active fake location is updated first. |
+| `com.huaMax.action.STOP`  | none | Sets `is_playing = false`. |
+| `com.huaMax.action.SET_LOCATION` | required `latitude` (double), `longitude` (double); optional `accuracy` (float); optional `start` (boolean) | Updates active fake location. If `accuracy` is provided, accuracy override is enabled. If `start=true`, faking is also started. |
 
 All writes go through the same `PreferencesRepository` the in-app UI uses, so they propagate to `XSharedPreferences` consumed by the Xposed hooks automatically.
 
@@ -37,31 +37,31 @@ All writes go through the same `PreferencesRepository` the in-app UI uses, so th
 ```sh
 # Start faking using whatever location was last set
 adb shell am broadcast \
-  -a com.noobexon.xposedfakelocation.action.START \
-  -n com.noobexon.xposedfakelocation/.manager.control.ControlReceiver
+  -a com.huaMax.action.START \
+  -n com.huaMax/.manager.control.ControlReceiver
 
 # Start faking at a specific location
 adb shell am broadcast \
-  -a com.noobexon.xposedfakelocation.action.START \
-  -n com.noobexon.xposedfakelocation/.manager.control.ControlReceiver \
+  -a com.huaMax.action.START \
+  -n com.huaMax/.manager.control.ControlReceiver \
   --ed latitude 37.7749 --ed longitude -122.4194
 
 # Set location only (does not start)
 adb shell am broadcast \
-  -a com.noobexon.xposedfakelocation.action.SET_LOCATION \
-  -n com.noobexon.xposedfakelocation/.manager.control.ControlReceiver \
+  -a com.huaMax.action.SET_LOCATION \
+  -n com.huaMax/.manager.control.ControlReceiver \
   --ed latitude 48.8566 --ed longitude 2.3522 --ef accuracy 5.0
 
 # Set location and immediately start
 adb shell am broadcast \
-  -a com.noobexon.xposedfakelocation.action.SET_LOCATION \
-  -n com.noobexon.xposedfakelocation/.manager.control.ControlReceiver \
+  -a com.huaMax.action.SET_LOCATION \
+  -n com.huaMax/.manager.control.ControlReceiver \
   --ed latitude 48.8566 --ed longitude 2.3522 --ez start true
 
 # Stop faking
 adb shell am broadcast \
-  -a com.noobexon.xposedfakelocation.action.STOP \
-  -n com.noobexon.xposedfakelocation/.manager.control.ControlReceiver
+  -a com.huaMax.action.STOP \
+  -n com.huaMax/.manager.control.ControlReceiver
 ```
 
 ## Caller snippet (Kotlin)
@@ -71,7 +71,7 @@ import android.content.Context
 import android.content.Intent
 
 object FakeLocationControl {
-    private const val PKG = "com.noobexon.xposedfakelocation"
+    private const val PKG = "com.huaMax"
     private const val RECEIVER = "$PKG.manager.control.ControlReceiver"
 
     fun start(context: Context, lat: Double? = null, lon: Double? = null) {

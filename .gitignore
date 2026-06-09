@@ -10,6 +10,12 @@
 .gradle/
 /local.properties
 /keystore.properties
+/keystore/
+*.jks
+*.keystore
+*.p12
+*.pem
+*.key
 
 # === Android Studio ===
 .idea/

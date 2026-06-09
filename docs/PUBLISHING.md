@@ -1,0 +1,141 @@
+# Publishing LocationMax
+
+This document is for publishing LocationMax to GitHub and submitting it to the LSPosed/Xposed module repository.
+
+## Before Uploading
+
+Check these points before pushing the repository:
+
+- Keep `LICENSE` in the repository.
+- Keep the original MIT license notice.
+- Do not upload `keystore.properties`.
+- Do not upload anything under `keystore/`.
+- Do not upload `.jks`, `.keystore`, `.p12`, `.pem`, `.key`, passwords, tokens, or server credentials.
+- Do not put the server SSH password in README, scripts, issues, release notes, or screenshots.
+- If a password has been pasted into chat, rotate it on the server.
+
+## Recommended GitHub Repository
+
+For LSPosed module repository submission, use the package name as the GitHub repository name:
+
+```text
+com.huaMax
+```
+
+Suggested public GitHub repository description:
+
+```text
+LocationMax - Android Xposed/LSPosed location simulation module for lawful testing
+```
+
+## First GitHub Upload
+
+After creating an empty GitHub repository, run these commands from the project directory:
+
+```powershell
+git remote add origin https://github.com/YOUR_NAME/com.huaMax.git
+git branch -M main
+git add .
+git commit -m "Prepare LocationMax public release"
+git push -u origin main
+```
+
+Replace `YOUR_NAME` with your GitHub username.
+
+If `git remote add origin` says the remote already exists, use:
+
+```powershell
+git remote set-url origin https://github.com/YOUR_NAME/com.huaMax.git
+```
+
+## GitHub Release
+
+The current local version is:
+
+```text
+versionCode: 5
+versionName: 0.0.5
+```
+
+For the LSPosed module repository, the safest release tag is:
+
+```text
+5-0.0.5
+```
+
+Upload this APK as a release asset:
+
+```text
+LocationMax-release.apk
+```
+
+The release title can be:
+
+```text
+LocationMax 0.0.5
+```
+
+Suggested release notes:
+
+```text
+LocationMax 0.0.5
+
+- Added place search on the map.
+- Added selected-point address display.
+- Added Telegram community entry.
+- Added activation-code flow.
+- Added remote enable, disable, and force-update control.
+- Refined the main map UI and drawer UI.
+
+For lawful testing and debugging only.
+```
+
+## GitHub Actions Signing
+
+The included release workflow can build and attach a signed APK automatically when a GitHub Release is published.
+
+Before using it, add these repository secrets in GitHub:
+
+```text
+LOCATIONMAX_KEYSTORE_BASE64
+LOCATIONMAX_KEYSTORE_PASSWORD
+LOCATIONMAX_KEY_ALIAS
+LOCATIONMAX_KEY_PASSWORD
+```
+
+If you do not know how to add these secrets yet, manually upload the already built APK to the GitHub Release instead.
+
+## LSPosed/Xposed Module Repository
+
+After the GitHub repository and release are ready, submit the module here:
+
+```text
+https://modules.lsposed.org/submission/
+```
+
+Use:
+
+```text
+Package name: com.huaMax
+Description: LocationMax - Android Xposed/LSPosed location simulation module for lawful testing
+```
+
+The public module repository expects a valid GitHub release with an APK asset. If the release tag needs to be corrected, the repository bot may adjust it after submission.
+
+## Public Description
+
+Short description:
+
+```text
+Android Xposed/LSPosed location simulation module for lawful testing.
+```
+
+Long description:
+
+```text
+LocationMax lets a rooted Android device owner configure a virtual location for selected apps through an Xposed/LSPosed module. It supports map selection, place search, address display, favorites, activation-code distribution, and remote enable/disable/force-update control. It is intended only for lawful testing, debugging, and device-owner-controlled use.
+```
+
+## Important Notice
+
+Publishing the project as open source does not remove legal responsibility. Do not advertise it for fraud, platform abuse, evasion, privacy invasion, or other unlawful use.

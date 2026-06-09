@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -6,7 +8,7 @@ plugins {
 
 // Version is derived from the release tag in CI (passed via -PappVersionName=vX.Y.Z or the
 // APP_VERSION_NAME env var). Local builds fall back to the dev version below.
-val fallbackVersionName = "0.0.1"
+val fallbackVersionName = "0.0.5"
 
 fun resolveVersionName(): String {
     val provided = (project.findProperty("appVersionName") as String?)
@@ -26,13 +28,34 @@ fun resolveVersionCode(versionName: String): Int {
 
 val appVersionName = resolveVersionName()
 val appVersionCode = resolveVersionCode(appVersionName)
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val hasLocationMaxKeystore = keystorePropertiesFile.isFile
+val keystoreProperties = Properties().apply {
+    if (hasLocationMaxKeystore) {
+        keystorePropertiesFile.inputStream().use(::load)
+    }
+}
+
+fun requiredSigningProperty(name: String): String =
+    keystoreProperties.getProperty(name) ?: error("Missing signing property: $name")
 
 android {
-    namespace = "com.noobexon.xposedfakelocation"
+    namespace = "com.huaMax"
     compileSdk = 36
 
+    signingConfigs {
+        if (hasLocationMaxKeystore) {
+            create("locationMax") {
+                storeFile = rootProject.file(requiredSigningProperty("storeFile"))
+                storePassword = requiredSigningProperty("storePassword")
+                keyAlias = requiredSigningProperty("keyAlias")
+                keyPassword = requiredSigningProperty("keyPassword")
+            }
+        }
+    }
+
     defaultConfig {
-        applicationId = "com.noobexon.xposedfakelocation"
+        applicationId = "com.huaMax"
         minSdk = 30
         targetSdk = 36
         versionCode = appVersionCode
@@ -40,6 +63,12 @@ android {
     }
 
     buildTypes {
+        debug {
+            if (hasLocationMaxKeystore) {
+                signingConfig = signingConfigs["locationMax"]
+            }
+        }
+
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -47,7 +76,11 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs["debug"]
+            signingConfig = if (hasLocationMaxKeystore) {
+                signingConfigs["locationMax"]
+            } else {
+                signingConfigs["debug"]
+            }
         }
 
     }
@@ -91,7 +124,6 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.gson)
     implementation(libs.hiddenapibypass)
-    implementation(libs.coil.compose)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

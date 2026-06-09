@@ -41,4 +41,4 @@
 # Gson data models — serialized/deserialized reflectively by field name, so the
 # field names must not be renamed (otherwise JSON keys change and parsing breaks).
 # ---------------------------------------------------------------------------
--keep class com.noobexon.xposedfakelocation.data.model.** { *; }
+-keep class com.huaMax.data.model.** { *; }

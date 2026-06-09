@@ -1,8 +1,8 @@
 name: Build & attach release APK
 
 # Triggered when you publish a GitHub Release (with your own notes).
-# CI builds the debug APK, versions it from the release tag, signs it with
-# your debug keystore, and attaches XposedFakeLocation.apk to the release.
+# CI builds the release APK, versions it from the release tag, signs it with
+# the release keystore from GitHub Secrets, and attaches LocationMax.apk.
 on:
   release:
     types: [published]
@@ -24,27 +24,46 @@ jobs:
           java-version: "21"
           cache: gradle
 
-      - name: Restore debug keystore
+      - name: Restore LocationMax keystore
         env:
-          DEBUG_KEYSTORE_BASE64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
+          LOCATIONMAX_KEYSTORE_BASE64: ${{ secrets.LOCATIONMAX_KEYSTORE_BASE64 }}
+          LOCATIONMAX_KEYSTORE_PASSWORD: ${{ secrets.LOCATIONMAX_KEYSTORE_PASSWORD }}
+          LOCATIONMAX_KEY_ALIAS: ${{ secrets.LOCATIONMAX_KEY_ALIAS }}
+          LOCATIONMAX_KEY_PASSWORD: ${{ secrets.LOCATIONMAX_KEY_PASSWORD }}
         run: |
-          if [ -z "$DEBUG_KEYSTORE_BASE64" ]; then
-            echo "::error::DEBUG_KEYSTORE_BASE64 secret is not set. Add it so releases keep a stable signature."
+          if [ -z "$LOCATIONMAX_KEYSTORE_BASE64" ] || [ -z "$LOCATIONMAX_KEYSTORE_PASSWORD" ] || [ -z "$LOCATIONMAX_KEY_ALIAS" ] || [ -z "$LOCATIONMAX_KEY_PASSWORD" ]; then
+            echo "::error::LocationMax signing secrets are not set. Add LOCATIONMAX_KEYSTORE_BASE64, LOCATIONMAX_KEYSTORE_PASSWORD, LOCATIONMAX_KEY_ALIAS, and LOCATIONMAX_KEY_PASSWORD."
             exit 1
           fi
-          mkdir -p "$HOME/.android"
-          echo "$DEBUG_KEYSTORE_BASE64" | base64 -d > "$HOME/.android/debug.keystore"
+          mkdir -p keystore
+          echo "$LOCATIONMAX_KEYSTORE_BASE64" | base64 -d > keystore/locationmax-release.jks
+          {
+            echo "storeFile=keystore/locationmax-release.jks"
+            echo "storePassword=$LOCATIONMAX_KEYSTORE_PASSWORD"
+            echo "keyAlias=$LOCATIONMAX_KEY_ALIAS"
+            echo "keyPassword=$LOCATIONMAX_KEY_PASSWORD"
+          } > keystore.properties
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      - name: Build debug APK
-        run: ./gradlew --no-daemon assembleDebug -PappVersionName="${{ github.event.release.tag_name }}"
+      - name: Resolve app version name
+        id: version
+        run: |
+          tag="${{ github.event.release.tag_name }}"
+          version="${tag#v}"
+          if echo "$version" | grep -Eq '^[0-9]+-.+'; then
+            version="${version#*-}"
+          fi
+          echo "app_version_name=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Build release APK
+        run: ./gradlew --no-daemon assembleRelease -PappVersionName="${{ steps.version.outputs.app_version_name }}"
 
       - name: Rename APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk XposedFakeLocation.apk
+        run: cp app/build/outputs/apk/release/app-release.apk LocationMax.apk
 
       - name: Upload APK to release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" XposedFakeLocation.apk --clobber
+        run: gh release upload "${{ github.event.release.tag_name }}" LocationMax.apk --clobber

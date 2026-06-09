@@ -16,12 +16,14 @@
         android:description="@string/description"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.XposedFakeLocation"
+        android:usesCleartextTraffic="true"
+        android:theme="@style/Theme.LocationMax"
         tools:targetApi="31">
         <activity
             android:name=".manager.MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.XposedFakeLocation">
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.LocationMax">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -39,9 +41,9 @@
             android:enabled="false"
             android:exported="true">
             <intent-filter>
-                <action android:name="com.noobexon.xposedfakelocation.action.START" />
-                <action android:name="com.noobexon.xposedfakelocation.action.STOP" />
-                <action android:name="com.noobexon.xposedfakelocation.action.SET_LOCATION" />
+                <action android:name="com.huaMax.action.START" />
+                <action android:name="com.huaMax.action.STOP" />
+                <action android:name="com.huaMax.action.SET_LOCATION" />
             </intent-filter>
         </receiver>
     </application>
