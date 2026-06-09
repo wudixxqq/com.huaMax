@@ -16,7 +16,7 @@ Check these points before pushing the repository:
 
 ## Recommended GitHub Repository
 
-For LSPosed module repository submission, use the package name as the GitHub repository name:
+For your own public source repository, use the package name as the GitHub repository name:
 
 ```text
 com.huaMax
@@ -120,7 +120,31 @@ Package name: com.huaMax
 Description: LocationMax - Android Xposed/LSPosed location simulation module for lawful testing
 ```
 
-The public module repository expects a valid GitHub release with an APK asset. If the release tag needs to be corrected, the repository bot may adjust it after submission.
+The official submission flow creates a GitHub issue titled:
+
+```text
+[submission] com.huaMax
+```
+
+The repository bot can create a package repository under `Xposed-Modules-Repo` and invite you as admin. If you later want to move your existing GitHub repository into that organization, use the transfer flow:
+
+```text
+[transfer] com.huaMax
+```
+
+The public module repository expects a valid GitHub release with an APK asset. The release tag should be:
+
+```text
+5-0.0.5
+```
+
+The repository should include:
+
+```text
+SUMMARY.md
+README.md
+LICENSE
+```
 
 ## Public Description
 
