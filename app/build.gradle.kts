@@ -8,7 +8,7 @@ plugins {
 
 // Version is derived from the release tag in CI (passed via -PappVersionName=vX.Y.Z or the
 // APP_VERSION_NAME env var). Local builds fall back to the dev version below.
-val fallbackVersionName = "0.0.7"
+val fallbackVersionName = "0.0.8"
 
 fun resolveVersionName(): String {
     val provided = (project.findProperty("appVersionName") as String?)

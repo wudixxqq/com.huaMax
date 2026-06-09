@@ -41,7 +41,7 @@ data class TargetAppsUiState(
     val filteredApps: List<TargetAppItem>
         get() {
             val query = searchQuery.trim()
-            return if (query.isEmpty()) {
+            val visibleApps = if (query.isEmpty()) {
                 apps
             } else {
                 apps.filter {
@@ -49,6 +49,11 @@ data class TargetAppsUiState(
                         it.packageName.contains(query, ignoreCase = true)
                 }
             }
+            return visibleApps.sortedWith(
+                compareBy<TargetAppItem> { !it.isSelected }
+                    .thenBy(String.CASE_INSENSITIVE_ORDER) { it.label }
+                    .thenBy { it.packageName }
+            )
         }
 }
 
