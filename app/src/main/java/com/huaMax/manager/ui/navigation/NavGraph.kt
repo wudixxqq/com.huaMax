@@ -25,6 +25,7 @@ import com.huaMax.manager.ui.remote.RemoteControlBlockedScreen
 import com.huaMax.manager.ui.remote.RemoteControlLoadingScreen
 import com.huaMax.manager.ui.settings.SettingsScreen
 import com.huaMax.manager.ui.targetapps.TargetAppsScreen
+import com.huaMax.manager.ui.update.UpdateScreen
 
 @Composable
 fun AppNavGraph(
@@ -104,6 +105,9 @@ fun AppNavGraph(
         }
         composable(route = Screen.TargetApps.route) {
             TargetAppsScreen(navController = navController)
+        }
+        composable(route = Screen.Update.route) {
+            UpdateScreen(navController = navController)
         }
     }
 }

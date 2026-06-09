@@ -9,4 +9,5 @@ sealed class Screen(val route: String) {
     object Permissions : Screen("permissions")
     object Settings : Screen("settings")
     object TargetApps : Screen("target_apps")
+    object Update : Screen("update")
 }

@@ -30,6 +30,18 @@
     <string name="remote_control_open_update">Open update link</string>
     <string name="remote_control_retry">Retry</string>
 
+    <string name="update_checking">Checking for the latest version...</string>
+    <string name="update_available_title">New version available</string>
+    <string name="update_available_message">The installed version is not the latest release. Download the newest APK from GitHub.</string>
+    <string name="update_latest_title">You are up to date</string>
+    <string name="update_latest_message">You are using the latest published version.</string>
+    <string name="update_error_title">Check failed</string>
+    <string name="update_error_message">Could not connect to GitHub to check the version. Try again later, or open the download page directly.</string>
+    <string name="update_current_version">Current version: %1$s</string>
+    <string name="update_latest_version">Latest version: %1$s</string>
+    <string name="update_open_download">Open GitHub download page</string>
+    <string name="update_retry">Check again</string>
+
     <string name="disclaimer_title">Use Disclaimer</string>
     <string name="disclaimer_body">LocationMax is intended only for lawful testing, development, device debugging, and personal learning. Do not use it to bypass platform rules, commit fraud, invade privacy, or perform any illegal activity. You are responsible for how this tool is used.</string>
     <string name="disclaimer_accept_checkbox">I have read and agree to use this app only for lawful testing purposes.</string>
@@ -57,6 +69,7 @@
     <string name="screen_target_apps">Target Apps</string>
     <string name="screen_templates">Templates</string>
     <string name="screen_about">About</string>
+    <string name="screen_update">Check for Updates</string>
 
     <string name="drawer_navigation">Navigation</string>
     <string name="drawer_community">Community</string>

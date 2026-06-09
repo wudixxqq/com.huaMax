@@ -30,6 +30,18 @@
     <string name="remote_control_open_update">打开更新链接</string>
     <string name="remote_control_retry">重试</string>
 
+    <string name="update_checking">正在检查最新版本...</string>
+    <string name="update_available_title">发现新版本</string>
+    <string name="update_available_message">当前安装的版本不是最新版，请前往 GitHub 下载最新 APK。</string>
+    <string name="update_latest_title">已是最新版</string>
+    <string name="update_latest_message">你正在使用当前发布的最新版本。</string>
+    <string name="update_error_title">检查失败</string>
+    <string name="update_error_message">无法连接 GitHub 检查版本。你可以稍后重试，或直接打开下载页面查看。</string>
+    <string name="update_current_version">当前版本：%1$s</string>
+    <string name="update_latest_version">最新版本：%1$s</string>
+    <string name="update_open_download">打开 GitHub 下载页面</string>
+    <string name="update_retry">重新检查</string>
+
     <string name="disclaimer_title">使用免责声明</string>
     <string name="disclaimer_body">LocationMax 仅用于合法的测试、开发、设备调试和个人学习。不得将本工具用于绕过平台规则、欺诈、侵犯隐私或任何违法用途。你需要自行承担使用本工具产生的后果。</string>
     <string name="disclaimer_accept_checkbox">我已阅读，并承诺仅将本应用用于合法测试用途。</string>
@@ -57,6 +69,7 @@
     <string name="screen_target_apps">目标应用</string>
     <string name="screen_templates">模板</string>
     <string name="screen_about">关于</string>
+    <string name="screen_update">检查更新</string>
 
     <string name="drawer_navigation">导航</string>
     <string name="drawer_community">社区</string>

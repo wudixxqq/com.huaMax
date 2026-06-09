@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
@@ -45,7 +46,6 @@ import compose.icons.LineAwesomeIcons
 import compose.icons.lineawesomeicons.HeartSolid
 import compose.icons.lineawesomeicons.InfoCircleSolid
 import compose.icons.lineawesomeicons.MapMarkerAltSolid
-import compose.icons.lineawesomeicons.MapSolid
 import compose.icons.lineawesomeicons.MobileAltSolid
 import compose.icons.lineawesomeicons.TelegramPlane
 
@@ -91,16 +91,6 @@ fun DrawerContent(
             DrawerHeader()
             Spacer(modifier = Modifier.height(DrawerDimensions.SECTION_SPACING))
             DrawerSectionHeader(stringResource(R.string.drawer_navigation))
-
-            DrawerItem(
-                icon = LineAwesomeIcons.MapSolid,
-                label = stringResource(R.string.drawer_map),
-                onClick = {
-                    navController.navigateFromDrawer(Screen.Map.route)
-                    onCloseDrawer()
-                },
-                isSelected = navController.currentDestination?.route == Screen.Map.route
-            )
 
             DrawerItem(
                 icon = LineAwesomeIcons.HeartSolid,
@@ -155,6 +145,16 @@ fun DrawerContent(
                     onCloseDrawer()
                 },
                 isSelected = navController.currentDestination?.route == Screen.About.route
+            )
+
+            DrawerItem(
+                icon = Icons.Default.SystemUpdate,
+                label = stringResource(R.string.screen_update),
+                onClick = {
+                    navController.navigateFromDrawer(Screen.Update.route)
+                    onCloseDrawer()
+                },
+                isSelected = navController.currentDestination?.route == Screen.Update.route
             )
 
             Spacer(modifier = Modifier.weight(1f))
