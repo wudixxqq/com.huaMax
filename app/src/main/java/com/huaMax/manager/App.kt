@@ -1,6 +1,8 @@
 package com.huaMax.manager
 
 import android.app.Application
+import com.amap.api.maps.MapsInitializer
+import com.amap.api.services.core.ServiceSettings
 import com.huaMax.data.REMOTE_PREFS_GROUP
 import com.huaMax.data.auth.AuthorizationManager
 import com.huaMax.data.remote.RemoteControlManager
@@ -19,6 +21,10 @@ class App : Application(), XposedServiceHelper.OnServiceListener {
 
     override fun onCreate() {
         super.onCreate()
+        MapsInitializer.updatePrivacyShow(this, true, true)
+        MapsInitializer.updatePrivacyAgree(this, true)
+        ServiceSettings.updatePrivacyShow(this, true, true)
+        ServiceSettings.updatePrivacyAgree(this, true)
         XposedServiceHelper.registerListener(this)   // exactly once
     }
 

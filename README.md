@@ -8,9 +8,9 @@ The module can make selected apps receive a configured virtual location. It is i
 
 ## Features
 
-- Pick a virtual location on the map.
-- Search for places and jump to matching coordinates.
-- Display coordinates and the resolved address of the selected point.
+- Pick a virtual location on the AMap/Gaode map.
+- Search for places with AMap/Gaode search and jump to matching coordinates.
+- Display coordinates and the resolved AMap/Gaode address of the selected point.
 - Save favorite locations.
 - Enable or disable spoofing from the in-app switch.
 - Configure target apps from the module manager UI.
@@ -102,7 +102,7 @@ com.huaMax
 Current release version:
 
 ```text
-0.0.8
+0.0.9
 ```
 
 ## Legal Notice

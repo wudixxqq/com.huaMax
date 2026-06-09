@@ -19,6 +19,10 @@
         android:usesCleartextTraffic="true"
         android:theme="@style/Theme.LocationMax"
         tools:targetApi="31">
+        <meta-data
+            android:name="com.amap.api.v2.apikey"
+            android:value="bf1349454f52130a009e2be8c0147d63" />
+
         <activity
             android:name=".manager.MainActivity"
             android:exported="true"
