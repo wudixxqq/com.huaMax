@@ -6,23 +6,20 @@ import android.location.Geocoder
 import androidx.annotation.StringRes
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.amap.api.services.core.LatLonPoint
-import com.amap.api.services.core.PoiItem
-import com.amap.api.services.geocoder.GeocodeAddress
-import com.amap.api.services.geocoder.GeocodeQuery
-import com.amap.api.services.geocoder.GeocodeSearch
-import com.amap.api.services.geocoder.RegeocodeQuery
-import com.amap.api.services.poisearch.PoiSearch
 import com.huaMax.R
-import com.huaMax.data.geo.CoordinateTransform
 import com.huaMax.data.model.FavoriteLocation
 import com.huaMax.data.repository.PreferencesRepository
 import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.URI
+import java.net.URLEncoder
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
 import org.osmdroid.util.GeoPoint
 
 /**
@@ -415,17 +412,23 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
     private fun searchPlacesByName(query: String): List<PlaceSearchResult> {
         var failure: Throwable? = null
 
-        val amapResults = try {
-            searchWithAmap(query)
-        } catch (e: Exception) {
+        val onlineResults = try {
+            searchWithNominatim(query)
+        } catch (e: IOException) {
+            failure = e
+            emptyList()
+        } catch (e: RuntimeException) {
             failure = e
             emptyList()
         }
-        if (amapResults.isNotEmpty()) return amapResults
+        if (onlineResults.isNotEmpty()) return onlineResults
 
         val deviceResults = try {
             searchWithDeviceGeocoder(query)
-        } catch (e: Exception) {
+        } catch (e: IOException) {
+            failure = e
+            emptyList()
+        } catch (e: RuntimeException) {
             failure = e
             emptyList()
         }
@@ -472,8 +475,8 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun reverseGeocodeAddress(geoPoint: GeoPoint): String? {
-        return reverseWithAmap(geoPoint)
-            ?: reverseWithDeviceGeocoder(geoPoint)
+        return reverseWithDeviceGeocoder(geoPoint)
+            ?: reverseWithNominatim(geoPoint)
     }
 
     @Suppress("DEPRECATION")
@@ -486,49 +489,77 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
             ?.toDisplayAddress()
     }
 
-    private fun reverseWithAmap(geoPoint: GeoPoint): String? {
-        val context = getApplication<Application>().applicationContext
-        val geocodeSearch = GeocodeSearch(context)
-        val query = RegeocodeQuery(
-            LatLonPoint(geoPoint.latitude, geoPoint.longitude),
-            200f,
-            GeocodeSearch.GPS
-        ).apply {
-            extensions = GeocodeSearch.EXTENSIONS_ALL
+    private fun reverseWithNominatim(geoPoint: GeoPoint): String? {
+        val url = URI.create(
+            "$NOMINATIM_REVERSE_URL?format=jsonv2&zoom=18&addressdetails=1&lat=${geoPoint.latitude}&lon=${geoPoint.longitude}"
+        ).toURL()
+        val connection = (url.openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = PLACE_SEARCH_TIMEOUT_MS
+            readTimeout = PLACE_SEARCH_TIMEOUT_MS
+            setRequestProperty("Accept", "application/json")
+            setRequestProperty("Accept-Language", Locale.getDefault().toLanguageTag())
+            setRequestProperty("User-Agent", "LocationMax Android")
         }
 
-        return geocodeSearch.getFromLocation(query)
-            ?.formatAddress
-            ?.takeIf { it.isNotBlank() }
+        return try {
+            val responseCode = connection.responseCode
+            if (responseCode !in 200..299) {
+                throw IOException("Nominatim reverse returned HTTP $responseCode")
+            }
+
+            val body = connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+            JSONObject(body).optString("display_name").takeIf { it.isNotBlank() }
+        } finally {
+            connection.disconnect()
+        }
     }
 
-    private fun searchWithAmap(query: String): List<PlaceSearchResult> {
-        val context = getApplication<Application>().applicationContext
-        val poiQuery = PoiSearch.Query(query, "", "").apply {
-            pageSize = PLACE_SEARCH_RESULT_LIMIT
-            pageNum = 0
-            cityLimit = false
-            setQueryLanguage(PoiSearch.CHINESE)
+    private fun searchWithNominatim(query: String): List<PlaceSearchResult> {
+        val encodedQuery = URLEncoder.encode(query, Charsets.UTF_8.name())
+        val url = URI.create(
+            "$NOMINATIM_SEARCH_URL?format=jsonv2&limit=$PLACE_SEARCH_RESULT_LIMIT&q=$encodedQuery"
+        ).toURL()
+        val connection = (url.openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = PLACE_SEARCH_TIMEOUT_MS
+            readTimeout = PLACE_SEARCH_TIMEOUT_MS
+            setRequestProperty("Accept", "application/json")
+            setRequestProperty("Accept-Language", Locale.getDefault().toLanguageTag())
+            setRequestProperty("User-Agent", "LocationMax Android")
         }
-        val poiSearch = PoiSearch(context, poiQuery).apply {
-            language = PoiSearch.CHINESE
+
+        return try {
+            val responseCode = connection.responseCode
+            if (responseCode !in 200..299) {
+                throw IOException("Nominatim returned HTTP $responseCode")
+            }
+
+            val body = connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+            val json = JSONArray(body)
+            buildList {
+                for (index in 0 until json.length()) {
+                    val item = json.getJSONObject(index)
+                    val latitude = item.optString("lat").toDoubleOrNull() ?: continue
+                    val longitude = item.optString("lon").toDoubleOrNull() ?: continue
+                    val displayName = item.optString("display_name")
+                    val name = item.optString("name")
+                        .takeIf { it.isNotBlank() }
+                        ?: displayName.substringBefore(",").takeIf { it.isNotBlank() }
+                        ?: query
+                    add(
+                        PlaceSearchResult(
+                            name = name,
+                            address = displayName.ifBlank { "$latitude, $longitude" },
+                            latitude = latitude,
+                            longitude = longitude
+                        )
+                    )
+                }
+            }.distinctBy { "${it.latitude}:${it.longitude}" }
+        } finally {
+            connection.disconnect()
         }
-
-        val poiResults = poiSearch.searchPOI()
-            ?.pois
-            .orEmpty()
-            .mapNotNull { it.toPlaceSearchResultFromAmap(query) }
-            .distinctBy { "${it.latitude}:${it.longitude}" }
-            .take(PLACE_SEARCH_RESULT_LIMIT)
-
-        if (poiResults.isNotEmpty()) return poiResults
-
-        return GeocodeSearch(context)
-            .getFromLocationName(GeocodeQuery(query, ""))
-            .orEmpty()
-            .mapNotNull { it.toPlaceSearchResultFromAmap(query) }
-            .distinctBy { "${it.latitude}:${it.longitude}" }
-            .take(PLACE_SEARCH_RESULT_LIMIT)
     }
 
     @Suppress("DEPRECATION")
@@ -557,51 +588,6 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
-    private fun PoiItem.toPlaceSearchResultFromAmap(fallbackName: String): PlaceSearchResult? {
-        val point = latLonPoint ?: return null
-        val wgs = point.toWgs84()
-        val name = title?.takeIf { it.isNotBlank() } ?: fallbackName
-        val address = listOfNotNull(provinceName, cityName, adName, snippet)
-            .filter { it.isNotBlank() }
-            .distinct()
-            .joinToString("")
-            .ifBlank { "${wgs.latitude}, ${wgs.longitude}" }
-
-        return PlaceSearchResult(
-            name = name,
-            address = address,
-            latitude = wgs.latitude,
-            longitude = wgs.longitude
-        )
-    }
-
-    private fun GeocodeAddress.toPlaceSearchResultFromAmap(fallbackName: String): PlaceSearchResult? {
-        val point = latLonPoint ?: return null
-        val wgs = point.toWgs84()
-        val address = formatAddress?.takeIf { it.isNotBlank() }
-            ?: listOfNotNull(province, city, district, township, neighborhood, building)
-                .filter { it.isNotBlank() }
-                .distinct()
-                .joinToString("")
-        val name = address?.takeIf { it.isNotBlank() }
-            ?.substringAfterLast("省")
-            ?.substringAfterLast("市")
-            ?.takeIf { it.isNotBlank() }
-            ?: fallbackName
-
-        return PlaceSearchResult(
-            name = name,
-            address = address?.ifBlank { "${wgs.latitude}, ${wgs.longitude}" } ?: "${wgs.latitude}, ${wgs.longitude}",
-            latitude = wgs.latitude,
-            longitude = wgs.longitude
-        )
-    }
-
-    private fun LatLonPoint.toWgs84(): GeoPoint {
-        val wgs = CoordinateTransform.gcj02ToWgs84(latitude, longitude)
-        return GeoPoint(wgs.latitude, wgs.longitude)
-    }
-
     private fun Address.toDisplayAddress(): String? {
         val addressLine = runCatching { getAddressLine(0) }.getOrNull().orEmpty()
         if (addressLine.isNotBlank()) return addressLine
@@ -623,5 +609,8 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
 
     private companion object {
         const val PLACE_SEARCH_RESULT_LIMIT = 5
+        const val PLACE_SEARCH_TIMEOUT_MS = 10_000
+        const val NOMINATIM_SEARCH_URL = "https://nominatim.openstreetmap.org/search"
+        const val NOMINATIM_REVERSE_URL = "https://nominatim.openstreetmap.org/reverse"
     }
 }

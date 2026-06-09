@@ -10,6 +10,7 @@ import androidx.navigation.compose.rememberNavController
 import com.huaMax.manager.localization.LocaleController
 import com.huaMax.manager.ui.navigation.AppNavGraph
 import com.huaMax.manager.ui.theme.LocationMaxTheme
+import org.osmdroid.config.Configuration
 
 class MainActivity : ComponentActivity() {
     override fun attachBaseContext(newBase: Context) {
@@ -23,6 +24,8 @@ class MainActivity : ComponentActivity() {
             showUnsupportedAndroidDialog()
             return
         }
+
+        Configuration.getInstance().load(this, getPreferences(MODE_PRIVATE))
 
         setContent {
             LocationMaxTheme {
