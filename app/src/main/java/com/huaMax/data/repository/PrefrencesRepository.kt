@@ -14,6 +14,7 @@ import com.huaMax.data.model.FavoriteLocation
 import com.huaMax.data.model.LastClickedLocation
 import com.huaMax.data.remote.RemoteControlManager
 import com.huaMax.manager.App
+import com.huaMax.manager.mock.MockLocationService
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -145,7 +146,11 @@ class PreferencesRepository(context: Context) {
         it.getBoolean(KEY_IS_PLAYING, false) &&
             AuthorizationManager.getStatus(it, updateLastSeen = false) is AuthorizationManager.ValidationResult.Valid
     }
-    suspend fun saveIsPlaying(isPlaying: Boolean) = editRemote { putBoolean(KEY_IS_PLAYING, isPlaying) }
+    suspend fun saveIsPlaying(isPlaying: Boolean) {
+        editLocal { putBoolean(KEY_IS_PLAYING, isPlaying) }
+        editRemote { putBoolean(KEY_IS_PLAYING, isPlaying) }
+        MockLocationService.sync(appContext, isPlaying)
+    }
     fun getIsPlaying(): Boolean {
         val prefs = remotePrefs() ?: return false
         return prefs.getBoolean(KEY_IS_PLAYING, false) &&
@@ -161,13 +166,21 @@ class PreferencesRepository(context: Context) {
 
     suspend fun saveLastClickedLocation(latitude: Double, longitude: Double) {
         val json = gson.toJson(LastClickedLocation(latitude, longitude))
+        editLocal { putString(KEY_LAST_CLICKED_LOCATION, json) }
         editRemote { putString(KEY_LAST_CLICKED_LOCATION, json) }
+        if (getIsPlaying()) {
+            MockLocationService.sync(appContext, true)
+        }
     }
 
     fun getLastClickedLocation(): LastClickedLocation? =
-        parseLastClickedLocation(remotePrefs()?.getString(KEY_LAST_CLICKED_LOCATION, null))
+        parseLastClickedLocation(
+            remotePrefs()?.getString(KEY_LAST_CLICKED_LOCATION, null)
+                ?: localPrefs.getString(KEY_LAST_CLICKED_LOCATION, null)
+        )
 
     suspend fun clearLastClickedLocation() {
+        editLocal { remove(KEY_LAST_CLICKED_LOCATION) }
         editRemote { remove(KEY_LAST_CLICKED_LOCATION) }
         saveIsPlaying(false)
         Log.d(tag, "Cleared 'LastClickedLocation' and set 'IsPlaying' to false")
@@ -186,12 +199,27 @@ class PreferencesRepository(context: Context) {
 
     // region Use Accuracy / Accuracy (remote)
     fun getUseAccuracyFlow(): Flow<Boolean> = remoteFlow(KEY_USE_ACCURACY, DEFAULT_USE_ACCURACY) { it.getBoolean(KEY_USE_ACCURACY, DEFAULT_USE_ACCURACY) }
-    suspend fun saveUseAccuracy(useAccuracy: Boolean) = editRemote { putBoolean(KEY_USE_ACCURACY, useAccuracy) }
-    fun getUseAccuracy(): Boolean = remotePrefs()?.getBoolean(KEY_USE_ACCURACY, DEFAULT_USE_ACCURACY) ?: DEFAULT_USE_ACCURACY
+    suspend fun saveUseAccuracy(useAccuracy: Boolean) {
+        editLocal { putBoolean(KEY_USE_ACCURACY, useAccuracy) }
+        editRemote { putBoolean(KEY_USE_ACCURACY, useAccuracy) }
+    }
+    fun getUseAccuracy(): Boolean = remotePrefs()?.getBoolean(KEY_USE_ACCURACY, DEFAULT_USE_ACCURACY)
+        ?: localPrefs.getBoolean(KEY_USE_ACCURACY, DEFAULT_USE_ACCURACY)
 
     fun getAccuracyFlow(): Flow<Double> = remoteFlow(KEY_ACCURACY, DEFAULT_ACCURACY) { readRemoteDouble(KEY_ACCURACY, DEFAULT_ACCURACY) }
-    suspend fun saveAccuracy(accuracy: Double) = editRemote { putLong(KEY_ACCURACY, java.lang.Double.doubleToRawLongBits(accuracy)) }
-    fun getAccuracy(): Double = readRemoteDouble(KEY_ACCURACY, DEFAULT_ACCURACY)
+    suspend fun saveAccuracy(accuracy: Double) {
+        val bits = java.lang.Double.doubleToRawLongBits(accuracy)
+        editLocal { putLong(KEY_ACCURACY, bits) }
+        editRemote { putLong(KEY_ACCURACY, bits) }
+    }
+    fun getAccuracy(): Double {
+        val remote = remotePrefs()
+        if (remote != null) {
+            return readRemoteDouble(KEY_ACCURACY, DEFAULT_ACCURACY)
+        }
+        val bits = localPrefs.getLong(KEY_ACCURACY, java.lang.Double.doubleToRawLongBits(DEFAULT_ACCURACY))
+        return java.lang.Double.longBitsToDouble(bits)
+    }
     // endregion
 
     // region Use Altitude / Altitude (remote)

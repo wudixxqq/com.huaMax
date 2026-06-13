@@ -2,8 +2,11 @@ package com.huaMax.manager
 
 import android.app.Application
 import com.huaMax.data.REMOTE_PREFS_GROUP
+import com.huaMax.data.KEY_IS_PLAYING
+import com.huaMax.data.SHARED_PREFS_FILE
 import com.huaMax.data.auth.AuthorizationManager
 import com.huaMax.data.remote.RemoteControlManager
+import com.huaMax.manager.mock.MockLocationService
 import io.github.libxposed.service.XposedService
 import io.github.libxposed.service.XposedServiceHelper
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +23,9 @@ class App : Application(), XposedServiceHelper.OnServiceListener {
     override fun onCreate() {
         super.onCreate()
         XposedServiceHelper.registerListener(this)   // exactly once
+        if (getSharedPreferences(SHARED_PREFS_FILE, MODE_PRIVATE).getBoolean(KEY_IS_PLAYING, false)) {
+            MockLocationService.sync(this, true)
+        }
     }
 
     override fun onServiceBind(service: XposedService) {

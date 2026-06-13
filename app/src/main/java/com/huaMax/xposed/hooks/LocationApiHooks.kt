@@ -138,8 +138,27 @@ class LocationApiHooks(private val module: XposedInterface, private val classLoa
             } else {
                 module.log(Log.INFO, tag, "MSL altitude APIs not available on this API level")
             }
+
+            hookMockLocationFlags(locationClass)
         } catch (e: Exception) {
             module.log(Log.ERROR, tag, "Error hooking Location class - ${e.message}")
+        }
+    }
+
+    private fun hookMockLocationFlags(locationClass: Class<*>) {
+        listOf("isFromMockProvider", "isMock").forEach { methodName ->
+            runCatching {
+                val method = locationClass.getDeclaredMethod(methodName)
+                module.hook(method).intercept { chain ->
+                    if (PreferencesUtil.getIsPlaying()) {
+                        false
+                    } else {
+                        chain.proceed()
+                    }
+                }
+            }.onFailure {
+                logLocationEvent { "$methodName API not available or could not be hooked: ${it.message}" }
+            }
         }
     }
 
