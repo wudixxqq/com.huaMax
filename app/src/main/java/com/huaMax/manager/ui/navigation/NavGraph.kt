@@ -1,28 +1,18 @@
 package com.huaMax.manager.ui.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.*
-import com.huaMax.data.auth.AuthorizationManager
-import com.huaMax.data.remote.RemoteControlManager
 import com.huaMax.data.repository.PreferencesRepository
 import com.huaMax.manager.ui.about.AboutScreen
-import com.huaMax.manager.ui.auth.AuthorizationScreen
 import com.huaMax.manager.ui.disclaimer.DisclaimerScreen
 import com.huaMax.manager.ui.favorites.FavoritesScreen
 import com.huaMax.manager.ui.map.MapScreen
 import com.huaMax.manager.ui.map.MapViewModel
 import com.huaMax.manager.ui.permissions.PermissionsScreen
-import com.huaMax.manager.ui.remote.RemoteControlBlockedScreen
-import com.huaMax.manager.ui.remote.RemoteControlLoadingScreen
 import com.huaMax.manager.ui.settings.SettingsScreen
 import com.huaMax.manager.ui.targetapps.TargetAppsScreen
 import com.huaMax.manager.ui.update.UpdateScreen
@@ -36,40 +26,10 @@ fun AppNavGraph(
     val preferencesRepository = remember {
         PreferencesRepository(context.applicationContext)
     }
-    val isAuthorized = remember {
-        preferencesRepository.getAuthorizationStatus() is AuthorizationManager.ValidationResult.Valid
-    }
     val hasAcceptedDisclaimer = remember {
         preferencesRepository.hasAcceptedDisclaimer()
     }
-    val firstContentRoute = if (isAuthorized) Screen.Permissions.route else Screen.Authorization.route
-    var checkNonce by remember { mutableIntStateOf(0) }
-    var remoteGateState by remember {
-        mutableStateOf<RemoteControlManager.GateState?>(null)
-    }
-
-    LaunchedEffect(checkNonce) {
-        remoteGateState = null
-        remoteGateState = RemoteControlManager.checkAndApply(context.applicationContext)
-        preferencesRepository.syncRemoteControlToRemote()
-    }
-
-    when (val state = remoteGateState) {
-        null -> {
-            RemoteControlLoadingScreen()
-            return
-        }
-
-        is RemoteControlManager.GateState.Blocked -> {
-            RemoteControlBlockedScreen(
-                state = state,
-                onRetry = { checkNonce++ }
-            )
-            return
-        }
-
-        RemoteControlManager.GateState.Allowed -> Unit
-    }
+    val firstContentRoute = Screen.Permissions.route
 
     NavHost(
         navController = navController,
@@ -80,12 +40,6 @@ fun AppNavGraph(
                 navController = navController,
                 preferencesRepository = preferencesRepository,
                 nextRoute = firstContentRoute
-            )
-        }
-        composable(route = Screen.Authorization.route) {
-            AuthorizationScreen(
-                navController = navController,
-                preferencesRepository = preferencesRepository
             )
         }
         composable(route = Screen.About.route) {

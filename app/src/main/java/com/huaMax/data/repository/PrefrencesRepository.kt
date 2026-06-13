@@ -142,13 +142,12 @@ class PreferencesRepository(context: Context) {
 
     // region Is Playing (remote)
     fun getIsPlayingFlow(): Flow<Boolean> = remoteFlow(KEY_IS_PLAYING, false) {
-        it.getBoolean(KEY_IS_PLAYING, false) && AuthorizationManager.getStatus(it, updateLastSeen = false) is AuthorizationManager.ValidationResult.Valid
+        it.getBoolean(KEY_IS_PLAYING, false)
     }
     suspend fun saveIsPlaying(isPlaying: Boolean) = editRemote { putBoolean(KEY_IS_PLAYING, isPlaying) }
     fun getIsPlaying(): Boolean {
         val prefs = remotePrefs() ?: return false
-        return prefs.getBoolean(KEY_IS_PLAYING, false) &&
-            AuthorizationManager.getStatus(prefs, updateLastSeen = false) is AuthorizationManager.ValidationResult.Valid
+        return prefs.getBoolean(KEY_IS_PLAYING, false)
     }
     // endregion
 

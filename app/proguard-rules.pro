@@ -19,9 +19,9 @@
 # so R8 must not delete it or strip its lifecycle callbacks.
 # ---------------------------------------------------------------------------
 
-# Keep every XposedModule subclass, its constructor, and all public callbacks
+# Keep every XposedModule subclass name, its constructor, and all public callbacks
 # (onModuleLoaded / onPackageLoaded / onPackageReady / onSystemServerStarting).
--keep,allowobfuscation,allowoptimization public class * extends io.github.libxposed.api.XposedModule {
+-keep,allowoptimization public class * extends io.github.libxposed.api.XposedModule {
     public <init>(...);
     public *;
 }
@@ -33,9 +33,7 @@
     @io.github.libxposed.api.annotations.AfterInvocation <methods>;
 }
 
-# If R8 obfuscates the entry class name, rewrite the name inside java_init.list
-# so the file keeps pointing at the (renamed) class.
--adaptresourcefilecontents META-INF/xposed/java_init.list
+# Keep java_init.list pointing at the stable, human-readable entry class name.
 
 # ---------------------------------------------------------------------------
 # Gson data models — serialized/deserialized reflectively by field name, so the

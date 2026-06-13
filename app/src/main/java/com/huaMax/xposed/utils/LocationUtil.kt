@@ -129,6 +129,7 @@ object LocationUtil {
     @Synchronized
     fun updateLocation() {
         try {
+            PreferencesUtil.refresh()
             PreferencesUtil.getLastClickedLocation()?.let {
                 if (PreferencesUtil.getUseRandomize() == true) {
                     val randomizationRadius = PreferencesUtil.getRandomizeRadius() ?: DEFAULT_RANDOMIZE_RADIUS
