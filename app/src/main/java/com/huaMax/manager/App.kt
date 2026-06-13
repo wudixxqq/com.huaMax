@@ -2,6 +2,7 @@ package com.huaMax.manager
 
 import android.app.Application
 import com.huaMax.data.REMOTE_PREFS_GROUP
+import com.huaMax.data.auth.AuthorizationManager
 import com.huaMax.data.remote.RemoteControlManager
 import io.github.libxposed.service.XposedService
 import io.github.libxposed.service.XposedServiceHelper
@@ -24,6 +25,7 @@ class App : Application(), XposedServiceHelper.OnServiceListener {
     override fun onServiceBind(service: XposedService) {
         _serviceState.value = service
         val remotePrefs = service.getRemotePreferences(REMOTE_PREFS_GROUP)
+        AuthorizationManager.syncLocalAuthorizationToRemote(this, remotePrefs)
         RemoteControlManager.syncLocalControlToRemote(this, remotePrefs)
     }
 

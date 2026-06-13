@@ -25,6 +25,8 @@ import com.huaMax.data.DEFAULT_USE_VERTICAL_ACCURACY
 import com.huaMax.data.DEFAULT_VERTICAL_ACCURACY
 import com.huaMax.data.KEY_ACCURACY
 import com.huaMax.data.KEY_ALTITUDE
+import com.huaMax.data.KEY_AUTH_EXPIRES_AT_MILLIS
+import com.huaMax.data.KEY_AUTH_LAST_SEEN_MILLIS
 import com.huaMax.data.KEY_ENABLE_SYSTEM_HOOKS
 import com.huaMax.data.KEY_HIDE_FAKE_LOCATION_TOAST
 import com.huaMax.data.KEY_IS_PLAYING
@@ -32,6 +34,7 @@ import com.huaMax.data.KEY_LAST_CLICKED_LOCATION
 import com.huaMax.data.KEY_MEAN_SEA_LEVEL
 import com.huaMax.data.KEY_MEAN_SEA_LEVEL_ACCURACY
 import com.huaMax.data.KEY_RANDOMIZE_RADIUS
+import com.huaMax.data.KEY_REMOTE_CONTROL_BLOCKED
 import com.huaMax.data.KEY_SPEED
 import com.huaMax.data.KEY_SPEED_ACCURACY
 import com.huaMax.data.KEY_TARGET_APPS
@@ -44,10 +47,12 @@ import com.huaMax.data.KEY_USE_SPEED
 import com.huaMax.data.KEY_USE_SPEED_ACCURACY
 import com.huaMax.data.KEY_USE_VERTICAL_ACCURACY
 import com.huaMax.data.KEY_VERTICAL_ACCURACY
+import com.huaMax.data.auth.AuthorizationManager
 import com.huaMax.data.model.LastClickedLocation
 
 object PreferencesUtil {
     private const val TAG = "[PreferencesUtil]"
+    private const val CLOCK_ROLLBACK_GRACE_MILLIS = 10L * 60L * 1000L
 
     @Volatile var logger: ((Int, String, String) -> Unit)? = null
     private fun log(msg: String, priority: Int = Log.INFO) = logger?.invoke(priority, TAG, msg)
@@ -84,7 +89,14 @@ object PreferencesUtil {
 
     fun getIsPlaying(): Boolean {
         refreshCache()
-        return cache.isPlaying
+        val nowMillis = System.currentTimeMillis()
+        val snapshot = cache
+        if (!snapshot.isPlaying || snapshot.remoteControlBlocked) return false
+        if (!snapshot.authorized || nowMillis > snapshot.authExpiresAtMillis) return false
+        if (snapshot.authLastSeenMillis > 0L && nowMillis + CLOCK_ROLLBACK_GRACE_MILLIS < snapshot.authLastSeenMillis) {
+            return false
+        }
+        return true
     }
 
     fun getLastClickedLocation(): LastClickedLocation? = cache.lastClickedLocation
@@ -117,8 +129,21 @@ object PreferencesUtil {
             return
         }
 
+        val nowMillis = System.currentTimeMillis()
+        val authStatus = AuthorizationManager.getStatus(
+            prefs,
+            nowMillis = nowMillis,
+            updateLastSeen = false
+        )
+
         cache = PreferencesCache(
             isPlaying = prefs.getBoolean(KEY_IS_PLAYING, false),
+            remoteControlBlocked = prefs.getBoolean(KEY_REMOTE_CONTROL_BLOCKED, false),
+            authorized = authStatus is AuthorizationManager.ValidationResult.Valid,
+            authExpiresAtMillis = (authStatus as? AuthorizationManager.ValidationResult.Valid)
+                ?.expiresAtMillis
+                ?: prefs.getLong(KEY_AUTH_EXPIRES_AT_MILLIS, 0L),
+            authLastSeenMillis = prefs.getLong(KEY_AUTH_LAST_SEEN_MILLIS, 0L),
             lastClickedLocation = parseLastClickedLocation(prefs.getString(KEY_LAST_CLICKED_LOCATION, null)),
             useAccuracy = prefs.getBoolean(KEY_USE_ACCURACY, DEFAULT_USE_ACCURACY),
             accuracy = readDouble(prefs, KEY_ACCURACY, DEFAULT_ACCURACY),
@@ -177,6 +202,10 @@ object PreferencesUtil {
 
     private data class PreferencesCache(
         val isPlaying: Boolean = false,
+        val remoteControlBlocked: Boolean = false,
+        val authorized: Boolean = false,
+        val authExpiresAtMillis: Long = 0L,
+        val authLastSeenMillis: Long = 0L,
         val lastClickedLocation: LastClickedLocation? = null,
         val useAccuracy: Boolean = DEFAULT_USE_ACCURACY,
         val accuracy: Double = DEFAULT_ACCURACY,

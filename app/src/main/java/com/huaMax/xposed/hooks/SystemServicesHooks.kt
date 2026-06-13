@@ -96,6 +96,9 @@ class SystemServicesHooks(
         hookAll(providerClass, "onReportLocation") { chain ->
             interceptOnReportLocation(providerClass, chain)
         }
+        hookAll(providerClass, "onReportLocations") { chain ->
+            interceptOnReportLocation(providerClass, chain)
+        }
     }
 
     private fun interceptOnReportLocation(providerClass: Class<*>, chain: Chain): Any? {
@@ -206,13 +209,43 @@ class SystemServicesHooks(
         if (collectPackageNames(chain.thisObject).none(LocationUtil::shouldSpoofPackage)) return chain.proceed()
 
         val args = chain.args
-        val locationArgIndex = args.indexOfFirst { it is Location }
-        if (locationArgIndex == -1) return chain.proceed()
-
-        val original = args[locationArgIndex] as? Location
+        var replaced = false
         val newArgs = args.toTypedArray()
-        newArgs[locationArgIndex] = LocationUtil.createFakeLocation(original)
-        logSystemLocationEvent { "Replaced Receiver.callLocationChangedLocked argument." }
+
+        args.forEachIndexed { index, arg ->
+            when (arg) {
+                is Location -> {
+                    newArgs[index] = LocationUtil.createFakeLocation(arg)
+                    replaced = true
+                }
+
+                is List<*> -> {
+                    var listReplaced = false
+                    val replacement = arg.map { item ->
+                        if (item is Location) {
+                            listReplaced = true
+                            LocationUtil.createFakeLocation(item)
+                        } else {
+                            item
+                        }
+                    }
+                    if (listReplaced) {
+                        newArgs[index] = replacement
+                        replaced = true
+                    }
+                }
+
+                else -> {
+                    if (replaceLocationFields(arg)) {
+                        replaced = true
+                    }
+                }
+            }
+        }
+
+        if (!replaced) return chain.proceed()
+
+        logSystemLocationEvent { "Replaced Receiver.callLocationChangedLocked location payload." }
         return chain.proceed(newArgs)
     }
 
@@ -414,7 +447,7 @@ class SystemServicesHooks(
     }
 
     private fun collectPackageNames(value: Any?, visited: MutableSet<Int>, depth: Int): Set<String> {
-        if (value == null || depth > 5) return emptySet()
+        if (value == null || depth > 8) return emptySet()
         if (value is String) return setOfNotNull(value.takeIf(::looksLikePackageName))
 
         val identity = System.identityHashCode(value)
@@ -479,12 +512,28 @@ class SystemServicesHooks(
             "mRequest",
             "request",
             "mLocationRequest",
-            "locationRequest"
+            "locationRequest",
+            "mListener",
+            "listener",
+            "mKey",
+            "key",
+            "mOwner",
+            "owner",
+            "mRegistration",
+            "registration"
         ).forEach { fieldName ->
             packageNames += collectPackageNames(findField(value.javaClass, fieldName)?.get(value), visited, depth + 1)
         }
 
-        listOf("getAttributionSource", "getNext", "getWorkSource", "getLocationRequest").forEach { methodName ->
+        listOf(
+            "getAttributionSource",
+            "getNext",
+            "getWorkSource",
+            "getLocationRequest",
+            "getListener",
+            "getKey",
+            "getOwner"
+        ).forEach { methodName ->
             val nestedValue = runCatching {
                 findMethod(value.javaClass, methodName)?.invoke(value)
             }.getOrNull()
@@ -531,23 +580,50 @@ class SystemServicesHooks(
         return value != null && "." in value && !value.startsWith("android.location.")
     }
 
+    private fun replaceLocationFields(value: Any?): Boolean {
+        if (value == null) return false
+        var replaced = false
+
+        val locationsField = findField(value.javaClass, "mLocations")
+        val originalLocations = locationsField?.get(value) as? List<*>
+        if (locationsField != null && originalLocations != null) {
+            val fakeLocations = originalLocations.map { item ->
+                if (item is Location) {
+                    replaced = true
+                    LocationUtil.createFakeLocation(item)
+                } else {
+                    item
+                }
+            }
+            if (replaced) {
+                locationsField.set(value, ArrayList(fakeLocations))
+            }
+        }
+
+        val locationField = findField(value.javaClass, "mLocation")
+        val originalLocation = locationField?.get(value) as? Location
+        if (locationField != null && originalLocation != null) {
+            locationField.set(value, LocationUtil.createFakeLocation(originalLocation))
+            replaced = true
+        }
+
+        return replaced
+    }
+
     private fun replaceLocationLikeResult(result: Any?, method: Method?): Any? {
         if (result is Location) {
             return LocationUtil.createFakeLocation(result)
         }
 
         if (result != null) {
-            val locationsField = findField(result.javaClass, "mLocations")
-            val originalLocations = locationsField?.get(result) as? List<*>
-            val original = originalLocations?.firstOrNull() as? Location
-            if (locationsField != null) {
-                locationsField.set(result, arrayListOf(LocationUtil.createFakeLocation(original)))
+            if (replaceLocationFields(result)) {
                 return result
             }
 
             if (result is List<*>) {
-                val original = result.firstOrNull() as? Location
-                return listOf(LocationUtil.createFakeLocation(original))
+                return result.map { item ->
+                    if (item is Location) LocationUtil.createFakeLocation(item) else item
+                }
             }
 
             runCatching {
