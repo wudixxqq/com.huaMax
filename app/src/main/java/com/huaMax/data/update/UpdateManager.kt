@@ -1,7 +1,6 @@
 package com.huaMax.data.update
 
 import com.huaMax.BuildConfig
-import com.huaMax.data.GITHUB_LATEST_APK_URL
 import com.huaMax.data.GITHUB_LATEST_RELEASE_URL
 import com.huaMax.data.GITHUB_REPOSITORY_URL
 import java.io.IOException
@@ -72,7 +71,7 @@ object UpdateManager {
     }
 
     private fun fetchLatestRelease(): LatestRelease {
-        val connection = (URI.create(GITHUB_LATEST_APK_URL).toURL().openConnection() as HttpURLConnection).apply {
+        val connection = (URI.create(GITHUB_LATEST_RELEASE_URL).toURL().openConnection() as HttpURLConnection).apply {
             requestMethod = "HEAD"
             connectTimeout = CONNECT_TIMEOUT_MS
             readTimeout = READ_TIMEOUT_MS
@@ -84,7 +83,7 @@ object UpdateManager {
         return try {
             val responseCode = connection.responseCode
             if (responseCode !in 300..399) {
-                throw IOException("GitHub redirect HTTP $responseCode")
+                throw IOException("GitHub latest release HTTP $responseCode")
             }
 
             val location = connection.getHeaderField("Location").orEmpty()
@@ -100,9 +99,11 @@ object UpdateManager {
         }
 
         val path = URI.create(location).path
-        val tag = path
-            .substringAfter("/releases/download/", "")
-            .substringBefore("/")
+        val tag = when {
+            "/releases/tag/" in path -> path.substringAfter("/releases/tag/", "").substringBefore("/")
+            "/releases/download/" in path -> path.substringAfter("/releases/download/", "").substringBefore("/")
+            else -> ""
+        }
         val releaseUrl = if (tag.isBlank()) {
             GITHUB_LATEST_RELEASE_URL
         } else {
