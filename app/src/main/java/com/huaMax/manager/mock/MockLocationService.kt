@@ -10,8 +10,9 @@ import android.location.LocationManager
 import android.location.provider.ProviderProperties
 import android.os.Build
 import android.os.Handler
+import android.os.HandlerThread
 import android.os.IBinder
-import android.os.Looper
+import android.os.PowerManager
 import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -31,9 +32,12 @@ import com.huaMax.data.auth.AuthorizationManager
 import com.huaMax.data.model.LastClickedLocation
 
 class MockLocationService : Service() {
-    private val handler = Handler(Looper.getMainLooper())
     private val gson = Gson()
+    private lateinit var handlerThread: HandlerThread
+    private lateinit var handler: Handler
     private lateinit var locationManager: LocationManager
+    private var wakeLock: PowerManager.WakeLock? = null
+    private var pushCount = 0
 
     private val tick = object : Runnable {
         override fun run() {
@@ -45,6 +49,10 @@ class MockLocationService : Service() {
             }
 
             if (pushMockLocation(state.location, state.accuracy)) {
+                pushCount++
+                if (pushCount == 1 || pushCount % 30 == 0) {
+                    Log.d(TAG, "Pushed mock location tick #$pushCount")
+                }
                 handler.postDelayed(this, UPDATE_INTERVAL_MS)
             } else {
                 stopSelf()
@@ -54,7 +62,12 @@ class MockLocationService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        handlerThread = HandlerThread("LocationMaxMockProvider").also { it.start() }
+        handler = Handler(handlerThread.looper)
         locationManager = getSystemService(LocationManager::class.java)
+        wakeLock = getSystemService(PowerManager::class.java)
+            .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "$packageName:MockLocationService")
+            .apply { setReferenceCounted(false) }
         createNotificationChannel()
     }
 
@@ -67,7 +80,9 @@ class MockLocationService : Service() {
             }
             else -> {
                 startForeground(NOTIFICATION_ID, buildNotification())
+                acquireWakeLock()
                 handler.removeCallbacks(tick)
+                pushCount = 0
                 handler.post(tick)
                 return START_STICKY
             }
@@ -77,6 +92,8 @@ class MockLocationService : Service() {
     override fun onDestroy() {
         handler.removeCallbacks(tick)
         stopMockProviders()
+        releaseWakeLock()
+        handlerThread.quitSafely()
         super.onDestroy()
     }
 
@@ -180,6 +197,22 @@ class MockLocationService : Service() {
     private fun stopMockProviders() {
         TARGET_PROVIDERS.forEach { provider ->
             runCatching { locationManager.removeTestProvider(provider) }
+        }
+    }
+
+    private fun acquireWakeLock() {
+        runCatching {
+            wakeLock?.takeIf { !it.isHeld }?.acquire()
+        }.onFailure {
+            Log.w(TAG, "Could not acquire wake lock: ${it.message}")
+        }
+    }
+
+    private fun releaseWakeLock() {
+        runCatching {
+            wakeLock?.takeIf { it.isHeld }?.release()
+        }.onFailure {
+            Log.w(TAG, "Could not release wake lock: ${it.message}")
         }
     }
 

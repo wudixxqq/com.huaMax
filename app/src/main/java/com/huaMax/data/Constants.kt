@@ -66,7 +66,7 @@ const val GITHUB_LATEST_RELEASE_URL = "$GITHUB_RELEASES_URL/latest"
 const val GITHUB_LATEST_APK_URL = "$GITHUB_LATEST_RELEASE_URL/download/LocationMax-release.apk"
 
 // Packages added/removed from module scope when system-level hooks are toggled.
-val SYSTEM_HOOK_PACKAGES = listOf("android", "com.android.phone")
+val SYSTEM_HOOK_PACKAGES = listOf("system", "android", "com.android.phone")
 
  // DEFAULT VALUES
 const val DEFAULT_USE_ACCURACY = false

@@ -98,7 +98,7 @@
     <string name="setting_external_broadcast_title">允许外部广播控制</string>
     <string name="setting_external_broadcast_description">关闭（默认）：阻止 BroadcastReceiver，任何应用或 ADB shell 都不能通过 intent 开始/停止模拟或设置坐标。开启：任何已安装应用和“adb shell am broadcast”都可以驱动模块（无权限检查；坐标会被限制在有效经纬度范围内）。仅当你信任设备上的所有应用，或在受控设备（例如自动化设备）上运行时才启用。操作说明和锁定选项见 docs/EXTERNAL_CONTROL.md。</string>
     <string name="setting_system_hooks_title">启用系统级 Hook</string>
-    <string name="setting_system_hooks_description">将 Android 系统框架（android）和电话进程（com.android.phone）添加到模块作用域，以便在系统层面模拟位置。更改需要重启设备后才能生效。</string>
+    <string name="setting_system_hooks_description">将 Android 系统框架（system/android）和电话进程（com.android.phone）添加到模块作用域，以便在系统层面模拟位置。更改需要重启设备后才能生效。</string>
     <string name="dialog_restart_required_title">需要重启</string>
     <string name="dialog_restart_required_enable_message">系统级 Hook 已添加到模块作用域。请重启设备以使其生效。</string>
     <string name="dialog_restart_required_disable_message">系统级 Hook 已从模块作用域中移除。请重启设备以彻底撤销。</string>

@@ -304,6 +304,19 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     )
     val languageTag: StateFlow<String> = _languageTagPreference.state
 
+    private var isRepairingSystemScope = false
+
+    init {
+        viewModelScope.launch {
+            combine(App.serviceState, enableSystemHooks) { service, enabled -> service to enabled }
+                .collectLatest { (service, enabled) ->
+                    if (service != null && enabled) {
+                        repairMissingSystemScope(service)
+                    }
+                }
+        }
+    }
+
     // Setter methods for all preferences
     fun setUseAccuracy(value: Boolean) = _useAccuracyPreference.setValue(value)
     fun setAccuracy(value: Double) = _accuracyPreference.setValue(value)
@@ -366,6 +379,47 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                     _systemHooksEvents.tryEmit(SystemHooksEvent.ScopeRequestFailed(e.message ?: e.toString()))
                 }
             }
+        }
+    }
+
+    private suspend fun repairMissingSystemScope(service: XposedService) {
+        if (isRepairingSystemScope) return
+
+        val missingPackages = try {
+            withContext(Dispatchers.IO) {
+                val currentScope = service.scope.toSet()
+                SYSTEM_HOOK_PACKAGES.filterNot(currentScope::contains)
+            }
+        } catch (e: XposedService.ServiceException) {
+            _systemHooksEvents.tryEmit(SystemHooksEvent.ScopeRequestFailed(e.message ?: e.toString()))
+            return
+        }
+
+        if (missingPackages.isEmpty()) return
+        isRepairingSystemScope = true
+
+        val callback = object : XposedService.OnScopeEventListener {
+            override fun onScopeRequestApproved(approved: List<String>) {
+                viewModelScope.launch {
+                    isRepairingSystemScope = false
+                    preferencesRepository.saveEnableSystemHooks(true)
+                    _systemHooksEvents.tryEmit(SystemHooksEvent.RestartRequired(true))
+                }
+            }
+
+            override fun onScopeRequestFailed(message: String) {
+                viewModelScope.launch {
+                    isRepairingSystemScope = false
+                    _systemHooksEvents.tryEmit(SystemHooksEvent.ScopeRequestFailed(message))
+                }
+            }
+        }
+
+        try {
+            withContext(Dispatchers.IO) { service.requestScope(missingPackages, callback) }
+        } catch (e: XposedService.ServiceException) {
+            isRepairingSystemScope = false
+            _systemHooksEvents.tryEmit(SystemHooksEvent.ScopeRequestFailed(e.message ?: e.toString()))
         }
     }
 }

@@ -59,7 +59,7 @@ class ModuleEntry : XposedModule() {
         log(Log.INFO, TAG, "onSystemServerStarting:\n\t${param.classLoader}")
 
         // system_server is a hooked process only when the user enabled system-level hooks (which adds
-        // "android" to the module scope). Per-intercept isPlaying + target_apps gating keeps these
+        // "system"/"android" to the module scope). Per-intercept isPlaying + target_apps gating keeps these
         // inert until the user is actively spoofing a selected target.
         PreferencesUtil.init(getRemotePreferences(REMOTE_PREFS_GROUP))
         systemServicesHooks = SystemServicesHooks(this, param.classLoader).also { it.initHooks() }
