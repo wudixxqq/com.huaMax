@@ -1,3 +1,3 @@
-LocationMax is an Android Xposed/LSPosed location simulation module for lawful testing, debugging, and device-owner-controlled use.
+LocationMax is a customized Android Xposed/LSPosed location simulation module based on noobexon1/XposedFakeLocation.
 
-It supports map selection, place search, selected-point address display, favorites, activation-code distribution, and remote enable/disable/force-update control.
+It supports map selection, place search, selected-point address display, favorites, activation-code distribution, remote enable/disable/force-update control, a foreground mock-provider fallback, and system-level hook coverage for scoped apps.

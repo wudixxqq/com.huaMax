@@ -2,13 +2,13 @@ name: Build & attach release APK
 
 # Manual-only helper for repository maintainers.
 # CI builds the release APK, versions it from the release tag, signs it with
-# the release keystore from GitHub Secrets, and attaches LocationMax.apk.
+# the release keystore from GitHub Secrets, and attaches LocationMax-release.apk.
 # Normal releases are uploaded from the local machine so GitHub Secrets are not required.
 on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: "Existing GitHub Release tag, for example 8-0.0.8"
+        description: "Existing GitHub Release tag, for example 16-0.0.16"
         required: true
         type: string
 
@@ -66,9 +66,9 @@ jobs:
         run: ./gradlew --no-daemon assembleRelease -PappVersionName="${{ steps.version.outputs.app_version_name }}"
 
       - name: Rename APK
-        run: cp app/build/outputs/apk/release/app-release.apk LocationMax.apk
+        run: cp app/build/outputs/apk/release/app-release.apk LocationMax-release.apk
 
       - name: Upload APK to release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ inputs.release_tag }}" LocationMax.apk --clobber
+        run: gh release upload "${{ inputs.release_tag }}" LocationMax-release.apk --clobber
