@@ -10,7 +10,7 @@ LocationMax started from [noobexon1/XposedFakeLocation](https://github.com/noobe
 
 ## Distribution And Access Control
 
-- Added a 10-day activation-code flow for managed use.
+- Added a 30-day activation-code flow for managed use.
 - Added remote JSON control for enable, disable, and force-update states.
 - Added update checking against GitHub Releases.
 - Added local and GitHub publishing workflows for signed APK releases.

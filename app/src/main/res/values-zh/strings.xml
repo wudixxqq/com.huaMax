@@ -15,7 +15,7 @@
     <string name="action_go">前往</string>
 
     <string name="auth_title">需要授权</string>
-    <string name="auth_description">请输入所有者发放的授权码。每个授权码最长有效 10 天，到期后需要重新输入。</string>
+    <string name="auth_description">请输入所有者发放的授权码。每个授权码最长有效 30 天，到期后需要重新输入。</string>
     <string name="auth_code_label">授权码</string>
     <string name="auth_activate">激活</string>
     <string name="auth_join_group_for_code">加入 Telegram 群组，免费获取激活码</string>

@@ -156,7 +156,7 @@ object AuthorizationManager {
         Reason.SIGNATURE -> "授权码签名无效"
         Reason.SUBJECT -> "授权码不属于 LocationMax"
         Reason.EXPIRED -> "授权码已过期，请重新输入新的授权码"
-        Reason.TOO_LONG -> "授权码有效期超过 10 天，已拒绝"
+        Reason.TOO_LONG -> "授权码有效期超过 $AUTH_VALIDITY_DAYS 天，已拒绝"
         Reason.CLOCK_ROLLBACK -> "检测到系统时间异常，请校准时间后重新授权"
         Reason.ERROR -> "授权码校验失败"
     }

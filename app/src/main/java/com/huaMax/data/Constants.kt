@@ -100,7 +100,7 @@ const val DEFAULT_LANGUAGE_TAG = ""
 
 const val DEFAULT_ENABLE_SYSTEM_HOOKS = false
 
-const val AUTH_VALIDITY_DAYS = 10
+const val AUTH_VALIDITY_DAYS = 30
 
 // MATH & PHYS
 const val PI = 3.14159265359

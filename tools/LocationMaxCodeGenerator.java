@@ -13,7 +13,7 @@ import java.util.Base64;
 public class LocationMaxCodeGenerator {
     public static void main(String[] args) throws Exception {
         if (args.length < 2) {
-            System.err.println("Usage: java LocationMaxCodeGenerator.java <private-key.pem> <days 1-10> [note]");
+            System.err.println("Usage: java LocationMaxCodeGenerator.java <private-key.pem> <days 1-30> [note]");
             System.exit(2);
         }
 
@@ -21,8 +21,8 @@ public class LocationMaxCodeGenerator {
         int days = Integer.parseInt(args[1]);
         String note = args.length >= 3 ? args[2].trim() : "";
 
-        if (days < 1 || days > 10) {
-            throw new IllegalArgumentException("Days must be between 1 and 10.");
+        if (days < 1 || days > 30) {
+            throw new IllegalArgumentException("Days must be between 1 and 30.");
         }
 
         PrivateKey privateKey = loadPrivateKey(privateKeyPath);

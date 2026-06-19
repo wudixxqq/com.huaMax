@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.17
+
+- Increased authorization-code validity from 10 days to 30 days.
+- Updated authorization code generator defaults and validation limits to match the 30-day app limit.
+- Updated authorization UI text and publishing templates for the new validity window.
+
 ## 0.0.16
 
 - Fixed manual update checks by reading the GitHub latest release tag instead of treating raw APK URLs as redirects.

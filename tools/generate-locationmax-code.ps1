@@ -1,11 +1,11 @@
 param(
     [string]$PrivateKeyPath = "keystore/locationmax-license-private.pem",
-    [int]$Days = 10,
+    [int]$Days = 30,
     [string]$Note = ""
 )
 
-if ($Days -lt 1 -or $Days -gt 10) {
-    throw "Days must be between 1 and 10."
+if ($Days -lt 1 -or $Days -gt 30) {
+    throw "Days must be between 1 and 30."
 }
 
 if (-not [System.IO.Path]::IsPathRooted($PrivateKeyPath)) {

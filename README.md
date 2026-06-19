@@ -15,7 +15,7 @@ Rollback APKs are kept in [releases/](releases/).
 ## Current Version
 
 ```text
-0.0.16
+0.0.17
 ```
 
 ## Package

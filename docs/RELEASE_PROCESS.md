@@ -9,13 +9,13 @@ Use GitHub Releases for the public latest APK.
 Tag format:
 
 ```text
-16-0.0.16
+17-0.0.17
 ```
 
 Release title format:
 
 ```text
-LocationMax 0.0.16
+LocationMax 0.0.17
 ```
 
 Release asset:
@@ -58,8 +58,8 @@ Force-update fields should match the newest release:
 ```json
 {
   "enabled": true,
-  "minVersionCode": 16,
-  "latestVersionName": "0.0.16",
+  "minVersionCode": 17,
+  "latestVersionName": "0.0.17",
   "updateUrl": "http://8.134.217.44/locationmax/LocationMax-release.apk",
   "message": "当前版本需要更新，请下载最新版后继续使用。"
 }

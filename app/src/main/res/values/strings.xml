@@ -15,7 +15,7 @@
     <string name="action_go">Go</string>
 
     <string name="auth_title">Authorization required</string>
-    <string name="auth_description">Enter the authorization code issued by the owner. Each code is valid for up to 10 days.</string>
+    <string name="auth_description">Enter the authorization code issued by the owner. Each code is valid for up to 30 days.</string>
     <string name="auth_code_label">Authorization code</string>
     <string name="auth_activate">Activate</string>
     <string name="auth_join_group_for_code">Join Telegram group to get a free activation code</string>

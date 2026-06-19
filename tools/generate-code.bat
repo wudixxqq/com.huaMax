@@ -2,7 +2,7 @@
 setlocal
 
 set "DAYS=%~1"
-if "%DAYS%"=="" set "DAYS=10"
+if "%DAYS%"=="" set "DAYS=30"
 
 set "NOTE=%~2"
 if "%NOTE%"=="" set "NOTE=manual"
